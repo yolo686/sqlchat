@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NL2SQL - 自然语言转SQL工具</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .panel h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .sql-result {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .data-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #c33;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #3c3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .config-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-item-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .config-item-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>🔍 NL2SQL - 自然语言转SQL工具</h1>
+                <p>审计场景下的智能SQL生成系统</p>
+            </div>
+
+            <div class="main-content">
+                <!-- 左侧：查询面板 -->
+                <div class="panel">
+                    <h2>📝 自然语言查询</h2>
+                    <div class="form-group">
+                        <label>数据库配置</label>
+                        <select v-model="selectedDatabaseId" @change="loadDatabaseConfigs">
+                            <option value="">请选择数据库</option>
+                            <option v-for="db in databaseConfigs" :key="db.id" :value="db.id">
+                                {{ db.name }} ({{ db.type }})
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>提示词模板（可选）</label>
+                        <select v-model="selectedTemplateId">
+                            <option value="">使用默认模板</option>
+                            <option v-for="template in promptTemplates" :key="template.id" :value="template.id">
+                                {{ template.name }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>输入您的问题</label>
+                        <textarea v-model="question" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" v-model="executeSql" id="executeSql">
+                        <label for="executeSql">执行SQL并返回结果</label>
+                    </div>
+                    <button class="btn btn-primary" @click="convert" :disabled="loading || !question || !selectedDatabaseId">
+                        {{ loading ? '生成中...' : '🚀 生成SQL' }}
+                    </button>
+
+                    <div v-if="response && response.sql" class="sql-result">
+                        <strong style="color: #61afef;">生成的SQL:</strong><br>
+                        {{ response.sql }}
+                    </div>
+
+                    <div v-if="response && response.errorMessage" class="error">
+                        <strong>错误:</strong> {{ response.errorMessage }}
+                    </div>
+                </div>
+
+                <!-- 右侧：结果面板 -->
+                <div class="panel">
+                    <h2>📊 查询结果</h2>
+                    <div v-if="loading" class="loading">
+                        <p>正在处理...</p>
+                    </div>
+                    <div v-else-if="response && response.executionResult">
+                        <div v-if="response.executionResult.success" class="success">
+                            <strong>执行成功!</strong> 共 {{ response.executionResult.rowCount }} 行数据
+                        </div>
+                        <div v-else class="error">
+                            <strong>执行失败:</strong> {{ response.executionResult.errorMessage }}
+                        </div>
+                        <table v-if="response.executionResult.data && response.executionResult.data.length > 0" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th v-for="(value, key) in response.executionResult.data[0]" :key="key">
+                                        {{ key }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(row, index) in response.executionResult.data" :key="index">
+                                    <td v-for="(value, key) in row" :key="key">
+                                        {{ value }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else>
+                        <p style="color: #999; text-align: center; padding: 40px;">
+                            请先生成SQL并执行查询
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置管理区域 -->
+            <div style="padding: 30px; border-top: 2px solid #e9ecef;">
+                <div class="tabs">
+                    <button class="tab" :class="{ active: activeTab === 'database' }" @click="activeTab = 'database'">
+                        🗄️ 数据库配置
+                    </button>
+                    <button class="tab" :class="{ active: activeTab === 'template' }" @click="activeTab = 'template'">
+                        📋 提示词模板
+                    </button>
+                </div>
+
+                <!-- 数据库配置标签页 -->
+                <div class="tab-content" :class="{ active: activeTab === 'database' }">
+                    <h2 style="margin-bottom: 20px;">数据库配置管理</h2>
+                    <div class="form-group">
+                        <label>数据库类型</label>
+                        <select v-model="newDatabaseConfig.type">
+                            <option value="MYSQL">MySQL</option>
+                            <option value="POSTGRESQL">PostgreSQL</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>配置名称</label>
+                        <input v-model="newDatabaseConfig.name" placeholder="例如：生产数据库">
+                    </div>
+                    <div class="form-group">
+                        <label>主机地址</label>
+                        <input v-model="newDatabaseConfig.host" placeholder="例如：localhost">
+                    </div>
+                    <div class="form-group">
+                        <label>端口</label>
+                        <input type="number" v-model.number="newDatabaseConfig.port" placeholder="例如：3306">
+                    </div>
+                    <div class="form-group">
+                        <label>数据库名</label>
+                        <input v-model="newDatabaseConfig.database" placeholder="例如：audit_db">
+                    </div>
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input v-model="newDatabaseConfig.username" placeholder="例如：root">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" v-model="newDatabaseConfig.password" placeholder="请输入密码">
+                    </div>
+                    <button class="btn btn-primary" @click="saveDatabaseConfig">保存配置</button>
+
+                    <h3 style="margin-top: 30px; margin-bottom: 15px;">已有配置</h3>
+                    <div v-for="db in databaseConfigs" :key="db.id" class="config-item">
+                        <div>
+                            <div class="config-item-name">{{ db.name }}</div>
+                            <div class="config-item-details">{{ db.type }} - {{ db.host }}:{{ db.port }}/{{ db.database }}</div>
+                        </div>
+                        <button class="btn btn-secondary" @click="deleteDatabaseConfig(db.id)">删除</button>
+                    </div>
+                </div>
+
+                <!-- 提示词模板标签页 -->
+                <div class="tab-content" :class="{ active: activeTab === 'template' }">
+                    <h2 style="margin-bottom: 20px;">提示词模板管理</h2>
+                    <div class="form-group">
+                        <label>模板名称</label>
+                        <input v-model="newTemplate.name" placeholder="例如：审计查询模板">
+                    </div>
+                    <div class="form-group">
+                        <label>模板描述</label>
+                        <input v-model="newTemplate.description" placeholder="模板用途说明">
+                    </div>
+                    <div class="form-group">
+                        <label>模板内容</label>
+                        <textarea v-model="newTemplate.template" style="min-height: 200px;" placeholder="请输入模板内容，可使用变量：{{SCHEMA_DESCRIPTION}}, {{BUSINESS_TERMS}}, {{SQL_EXAMPLES}}, {{USER_QUESTION}}"></textarea>
+                    </div>
+                    <button class="btn btn-primary" @click="savePromptTemplate">保存模板</button>
+
+                    <h3 style="margin-top: 30px; margin-bottom: 15px;">已有模板</h3>
+                    <div v-for="template in promptTemplates" :key="template.id" class="config-item">
+                        <div>
+                            <div class="config-item-name">{{ template.name }}</div>
+                            <div class="config-item-details">{{ template.description }}</div>
+                        </div>
+                        <button class="btn btn-secondary" @click="deletePromptTemplate(template.id)">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    question: '',
+                    selectedDatabaseId: '',
+                    selectedTemplateId: '',
+                    executeSql: true,
+                    loading: false,
+                    response: null,
+                    databaseConfigs: [],
+                    promptTemplates: [],
+                    activeTab: 'database',
+                    newDatabaseConfig: {
+                        type: 'MYSQL',
+                        name: '',
+                        host: '',
+                        port: 3306,
+                        database: '',
+                        username: '',
+                        password: ''
+                    },
+                    newTemplate: {
+                        name: '',
+                        description: '',
+                        template: ''
+                    }
+                };
+            },
+            mounted() {
+                this.loadDatabaseConfigs();
+                this.loadPromptTemplates();
+            },
+            methods: {
+                async convert() {
+                    if (!this.question || !this.selectedDatabaseId) {
+                        alert('请填写问题和选择数据库配置');
+                        return;
+                    }
+
+                    this.loading = true;
+                    this.response = null;
+
+                    try {
+                        const response = await axios.post('/api/nl2sql/convert', {
+                            question: this.question,
+                            databaseConfigId: this.selectedDatabaseId,
+                            promptTemplateId: this.selectedTemplateId || null,
+                            executeSql: this.executeSql
+                        });
+                        this.response = response.data;
+                    } catch (error) {
+                        this.response = {
+                            success: false,
+                            errorMessage: error.response?.data?.message || error.message || '请求失败'
+                        };
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async loadDatabaseConfigs() {
+                    try {
+                        const response = await axios.get('/api/nl2sql/database-configs');
+                        this.databaseConfigs = response.data;
+                    } catch (error) {
+                        console.error('加载数据库配置失败:', error);
+                    }
+                },
+                async saveDatabaseConfig() {
+                    if (!this.newDatabaseConfig.name || !this.newDatabaseConfig.host) {
+                        alert('请填写必填项');
+                        return;
+                    }
+
+                    try {
+                        await axios.post('/api/nl2sql/database-configs', this.newDatabaseConfig);
+                        this.loadDatabaseConfigs();
+                        // 重置表单
+                        this.newDatabaseConfig = {
+                            type: 'MYSQL',
+                            name: '',
+                            host: '',
+                            port: 3306,
+                            database: '',
+                            username: '',
+                            password: ''
+                        };
+                        alert('保存成功');
+                    } catch (error) {
+                        alert('保存失败: ' + (error.response?.data?.message || error.message));
+                    }
+                },
+                async deleteDatabaseConfig(id) {
+                    if (!confirm('确定要删除这个配置吗？')) {
+                        return;
+                    }
+
+                    try {
+                        await axios.delete(`/api/nl2sql/database-configs/${id}`);
+                        this.loadDatabaseConfigs();
+                        if (this.selectedDatabaseId === id) {
+                            this.selectedDatabaseId = '';
+                        }
+                    } catch (error) {
+                        alert('删除失败: ' + (error.response?.data?.message || error.message));
+                    }
+                },
+                async loadPromptTemplates() {
+                    try {
+                        const response = await axios.get('/api/nl2sql/prompt-templates');
+                        this.promptTemplates = response.data;
+                    } catch (error) {
+                        console.error('加载提示词模板失败:', error);
+                    }
+                },
+                async savePromptTemplate() {
+                    if (!this.newTemplate.name || !this.newTemplate.template) {
+                        alert('请填写模板名称和内容');
+                        return;
+                    }
+
+                    try {
+                        await axios.post('/api/nl2sql/prompt-templates', this.newTemplate);
+                        this.loadPromptTemplates();
+                        // 重置表单
+                        this.newTemplate = {
+                            name: '',
+                            description: '',
+                            template: ''
+                        };
+                        alert('保存成功');
+                    } catch (error) {
+                        alert('保存失败: ' + (error.response?.data?.message || error.message));
+                    }
+                },
+                async deletePromptTemplate(id) {
+                    if (!confirm('确定要删除这个模板吗？')) {
+                        return;
+                    }
+
+                    try {
+                        await axios.delete(`/api/nl2sql/prompt-templates/${id}`);
+                        this.loadPromptTemplates();
+                        if (this.selectedTemplateId === id) {
+                            this.selectedTemplateId = '';
+                        }
+                    } catch (error) {
+                        alert('删除失败: ' + (error.response?.data?.message || error.message));
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
