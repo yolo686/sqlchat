@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Nl2SqlRequest {
+    private String userId; // 用户ID
     private String question; // 用户问题
     private String databaseConfigId; // 数据库配置ID
-    private String promptTemplateId; // 提示词模板ID（可选）
     private Boolean executeSql; // 是否执行SQL
 }

@@ -41,11 +41,8 @@ public class Nl2SqlService {
     @Autowired
     private SqlExecutorFactory executorFactory;
 
-    // 临时存储数据库配置（实际应该从数据库或配置中心读取）
-    private final Map<String, DatabaseConfig> databaseConfigs = new HashMap<>();
-
-    // 临时存储提示词模板（实际应该从数据库或配置中心读取）
-    private final Map<String, PromptTemplate> promptTemplates = new HashMap<>();
+    @Autowired
+    private ConfigService configService;
 
     /**
      * 执行NL2SQL转换
@@ -56,7 +53,7 @@ public class Nl2SqlService {
             ParsedQuestion parsedQuestion = questionParser.parse(request.getQuestion());
 
             // 2. 获取数据库配置
-            DatabaseConfig dbConfig = getDatabaseConfig(request.getDatabaseConfigId());
+            DatabaseConfig dbConfig = configService.getDatabaseConfig(request.getUserId(), request.getDatabaseConfigId());
             if (dbConfig == null) {
                 return createErrorResponse("数据库配置不存在: " + request.getDatabaseConfigId());
             }
@@ -68,11 +65,8 @@ public class Nl2SqlService {
             // 4. RAG检索上下文
             RagContext ragContext = ragService.retrieveContext(request.getQuestion(), allTables);
 
-            // 5. 获取提示词模板
-            String template = getPromptTemplate(request.getPromptTemplateId());
-
-            // 6. 格式化提示词
-            String prompt = promptFormatter.format(parsedQuestion, ragContext, template);
+            // 5. 格式化提示词（不再使用查询模板，直接使用默认模板）
+            String prompt = promptFormatter.format(parsedQuestion, ragContext, null);
 
             // 7. 生成SQL
             String sql = sqlGenerator.generateSql(prompt);
@@ -104,80 +98,6 @@ public class Nl2SqlService {
         }
     }
 
-    /**
-     * 保存数据库配置
-     */
-    public void saveDatabaseConfig(DatabaseConfig config) {
-        if (config.getId() == null) {
-            config.setId("db_" + System.currentTimeMillis());
-        }
-        databaseConfigs.put(config.getId(), config);
-    }
-
-    /**
-     * 获取数据库配置
-     */
-    public DatabaseConfig getDatabaseConfig(String id) {
-        return databaseConfigs.get(id);
-    }
-
-    /**
-     * 获取所有数据库配置
-     */
-    public List<DatabaseConfig> getAllDatabaseConfigs() {
-        return databaseConfigs.values().stream().toList();
-    }
-
-    /**
-     * 删除数据库配置
-     */
-    public void deleteDatabaseConfig(String id) {
-        databaseConfigs.remove(id);
-    }
-
-    /**
-     * 保存提示词模板
-     */
-    public void savePromptTemplate(PromptTemplate template) {
-        if (template.getId() == null) {
-            template.setId("template_" + System.currentTimeMillis());
-        }
-        promptTemplates.put(template.getId(), template);
-    }
-
-//    /**
-//     * 获取提示词模板
-//     */
-//    public PromptTemplate getPromptTemplate(String id) {
-//        return promptTemplates.get(id);
-//    }
-
-    /**
-     * 获取所有提示词模板
-     */
-    public List<PromptTemplate> getAllPromptTemplates() {
-        return promptTemplates.values().stream().toList();
-    }
-
-    /**
-     * 删除提示词模板
-     */
-    public void deletePromptTemplate(String id) {
-        promptTemplates.remove(id);
-    }
-
-    /**
-     * 获取提示词模板内容
-     */
-    private String getPromptTemplate(String templateId) {
-        if (templateId != null && !templateId.isEmpty()) {
-            PromptTemplate template = promptTemplates.get(templateId);
-            if (template != null && template.getTemplate() != null) {
-                return template.getTemplate();
-            }
-        }
-        return null; // 使用默认模板
-    }
 
     /**
      * 创建错误响应

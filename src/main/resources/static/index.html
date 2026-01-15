@@ -17,55 +17,79 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            font-size: 16px;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .navbar .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            padding: 10px 24px;
+            text-decoration: none;
+            color: #667eea;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
         .container {
             max-width: 1400px;
-            margin: 0 auto;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .main-card {
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
         }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+        .query-section {
+            padding: 40px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
+        .query-section h2 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 16px;
-        }
-
-        .main-content {
+        .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
-            padding: 30px;
-        }
-
-        .panel {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid #e9ecef;
-        }
-
-        .panel h2 {
-            font-size: 20px;
-            margin-bottom: 15px;
-            color: #333;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
         }
 
         .form-group {
@@ -74,20 +98,22 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
             color: #555;
+            font-size: 16px;
         }
 
         .form-group select,
         .form-group textarea,
         .form-group input {
             width: 100%;
-            padding: 12px;
+            padding: 16px;
             border: 2px solid #e9ecef;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
         }
 
         .form-group select:focus,
@@ -95,162 +121,19 @@
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .form-group textarea {
-            min-height: 120px;
+            min-height: 150px;
             resize: vertical;
-            font-family: inherit;
         }
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .sql-result {
-            background: #282c34;
-            color: #abb2bf;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            overflow-x: auto;
-            margin-top: 15px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            background: white;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .data-table th {
-            background: #667eea;
-            color: white;
-            font-weight: 600;
-        }
-
-        .data-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .error {
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-            border-left: 4px solid #c33;
-        }
-
-        .success {
-            background: #efe;
-            color: #3c3;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-            border-left: 4px solid #3c3;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #667eea;
-        }
-
-        .tabs {
+        .form-actions {
             display: flex;
-            border-bottom: 2px solid #e9ecef;
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            padding: 12px 24px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .config-item {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            border: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
+            gap: 15px;
             align-items: center;
-        }
-
-        .config-item-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .config-item-details {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+            margin-top: 25px;
         }
 
         .checkbox-group {
@@ -262,179 +145,484 @@
         .checkbox-group input[type="checkbox"] {
             width: auto;
         }
+
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .result-section h2 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        .sql-result {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            overflow-x: auto;
+            margin-bottom: 25px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+
+        .data-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 16px;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .message {
+            padding: 18px 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 16px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Toast 提示组件 */
+        .toast-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+            padding: 24px 32px;
+            min-width: 400px;
+            max-width: 500px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            animation: slideInCenter 0.3s ease-out, fadeOut 0.3s ease-in 1.7s;
+            animation-fill-mode: both;
+        }
+
+        .toast.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .toast.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .toast-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .toast.success .toast-icon {
+            color: #28a745;
+        }
+
+        .toast.error .toast-icon {
+            color: #dc3545;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .toast-message {
+            font-size: 16px;
+            color: #666;
+        }
+
+        @keyframes slideInCenter {
+            from {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(0.9);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <div class="container">
-            <div class="header">
-                <h1>🔍 NL2SQL - 自然语言转SQL工具</h1>
-                <p>审计场景下的智能SQL生成系统</p>
+        <!-- Toast 提示容器 -->
+        <div class="toast-container">
+            <div v-for="toast in toasts" :key="toast.id" :class="['toast', toast.type]">
+                <div class="toast-icon">
+                    <span v-if="toast.type === 'success'">✓</span>
+                    <span v-else>✗</span>
+                </div>
+                <div class="toast-content">
+                    <div class="toast-title">{{ toast.title }}</div>
+                    <div class="toast-message">{{ toast.message }}</div>
+                </div>
             </div>
+        </div>
 
-            <div class="main-content">
-                <!-- 左侧：查询面板 -->
-                <div class="panel">
+        <nav class="navbar">
+            <h1>🔍 NL2SQL - 自然语言转SQL工具</h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="nav-links">
+                    <a href="#" class="nav-link" :class="{ active: currentPage === 'query' }" @click.prevent="currentPage = 'query'">查询</a>
+                    <a href="#" class="nav-link" :class="{ active: currentPage === 'config' }" @click.prevent="currentPage = 'config'">配置</a>
+                </div>
+                <div v-if="currentUser" style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #667eea; font-weight: 500; font-size: 16px;">{{ currentUser.username }}</span>
+                    <button class="btn" style="background: #6c757d; color: white; padding: 10px 20px; font-size: 16px;" @click="logout">退出</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container" v-if="currentPage === 'query'">
+            <div class="main-card">
+                <!-- 查询区域 -->
+                <div class="query-section">
                     <h2>📝 自然语言查询</h2>
-                    <div class="form-group">
-                        <label>数据库配置</label>
-                        <select v-model="selectedDatabaseId" @change="loadDatabaseConfigs">
-                            <option value="">请选择数据库</option>
-                            <option v-for="db in databaseConfigs" :key="db.id" :value="db.id">
-                                {{ db.name }} ({{ db.type }})
-                            </option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>提示词模板（可选）</label>
-                        <select v-model="selectedTemplateId">
-                            <option value="">使用默认模板</option>
-                            <option v-for="template in promptTemplates" :key="template.id" :value="template.id">
-                                {{ template.name }}
-                            </option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>数据库配置</label>
+                            <select v-model="selectedDatabaseId" @change="loadDatabaseConfigs">
+                                <option value="">请选择数据库</option>
+                                <option v-for="db in databaseConfigs" :key="db.id" :value="db.id">
+                                    {{ db.name }} ({{ db.type }})
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>查询模板（可选）</label>
+                            <select v-model="selectedTemplateId" @change="onTemplateChange">
+                                <option value="">不使用模板</option>
+                                <option v-for="template in queryTemplates" :key="template.id" :value="template.id">
+                                    {{ template.name }}
+                                </option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>输入您的问题</label>
                         <textarea v-model="question" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
                     </div>
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" v-model="executeSql" id="executeSql">
-                        <label for="executeSql">执行SQL并返回结果</label>
-                    </div>
-                    <button class="btn btn-primary" @click="convert" :disabled="loading || !question || !selectedDatabaseId">
-                        {{ loading ? '生成中...' : '🚀 生成SQL' }}
-                    </button>
-
-                    <div v-if="response && response.sql" class="sql-result">
-                        <strong style="color: #61afef;">生成的SQL:</strong><br>
-                        {{ response.sql }}
-                    </div>
-
-                    <div v-if="response && response.errorMessage" class="error">
-                        <strong>错误:</strong> {{ response.errorMessage }}
+                    <div class="form-actions">
+                        <div class="checkbox-group">
+                            <input type="checkbox" v-model="executeSql" id="executeSql">
+                            <label for="executeSql">执行SQL并返回结果</label>
+                        </div>
+                        <button class="btn btn-primary" @click="convert" :disabled="loading || !question || !selectedDatabaseId">
+                            {{ loading ? '生成中...' : '🚀 生成SQL' }}
+                        </button>
                     </div>
                 </div>
 
-                <!-- 右侧：结果面板 -->
-                <div class="panel">
+                <!-- 结果区域 -->
+                <div class="result-section">
                     <h2>📊 查询结果</h2>
                     <div v-if="loading" class="loading">
-                        <p>正在处理...</p>
+                        <p>正在处理中，请稍候...</p>
                     </div>
-                    <div v-else-if="response && response.executionResult">
-                        <div v-if="response.executionResult.success" class="success">
-                            <strong>执行成功!</strong> 共 {{ response.executionResult.rowCount }} 行数据
+                    <div v-else-if="response">
+                        <div v-if="response.sql" class="sql-result">
+                            <strong style="color: #61afef;">生成的SQL:</strong><br><br>
+                            {{ response.sql }}
                         </div>
-                        <div v-else class="error">
-                            <strong>执行失败:</strong> {{ response.executionResult.errorMessage }}
+                        <div v-if="response.errorMessage" class="message error">
+                            <strong>错误:</strong> {{ response.errorMessage }}
                         </div>
-                        <table v-if="response.executionResult.data && response.executionResult.data.length > 0" class="data-table">
-                            <thead>
-                                <tr>
-                                    <th v-for="(value, key) in response.executionResult.data[0]" :key="key">
-                                        {{ key }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(row, index) in response.executionResult.data" :key="index">
-                                    <td v-for="(value, key) in row" :key="key">
-                                        {{ value }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div v-else-if="response.executionResult">
+                            <div v-if="response.executionResult.success" class="message success">
+                                <strong>✓ 执行成功!</strong> 共 {{ response.executionResult.rowCount }} 行数据
+                            </div>
+                            <div v-else class="message error">
+                                <strong>✗ 执行失败:</strong> {{ response.executionResult.errorMessage }}
+                            </div>
+                            <div v-if="response.executionResult.data && response.executionResult.data.length > 0" class="data-table-container" style="margin-top: 20px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th v-for="(value, key) in response.executionResult.data[0]" :key="key">
+                                                {{ key }}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(row, index) in response.executionResult.data" :key="index">
+                                            <td v-for="(value, key) in row" :key="key">
+                                                {{ value }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>请在上方输入问题并生成SQL</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 配置页面 -->
+        <div class="container" v-if="currentPage === 'config'">
+            <!-- 数据库配置区域 -->
+            <div class="main-card" style="margin-bottom: 30px;">
+                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 28px; color: #333; margin: 0;">🗄️ 数据库配置</h2>
+                    <button class="btn btn-primary" @click="showDbForm = !showDbForm; if (!showDbForm) cancelEditDb();" style="padding: 12px 24px; font-size: 16px;">
+                        {{ showDbForm ? '取消' : '+ 新建' }}
+                    </button>
+                </div>
+                
+                <!-- 数据库配置表单 -->
+                <div v-if="showDbForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label>数据库类型</label>
+                            <select v-model="editingDbConfig.type">
+                                <option value="MYSQL">MySQL</option>
+                                <option value="POSTGRESQL">PostgreSQL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>配置名称</label>
+                            <input v-model="editingDbConfig.name" placeholder="例如：生产数据库">
+                        </div>
+                        <div class="form-group">
+                            <label>主机地址</label>
+                            <input v-model="editingDbConfig.host" placeholder="例如：localhost">
+                        </div>
+                        <div class="form-group">
+                            <label>端口</label>
+                            <input type="number" v-model.number="editingDbConfig.port" placeholder="例如：3306">
+                        </div>
+                        <div class="form-group">
+                            <label>数据库名</label>
+                            <input v-model="editingDbConfig.database" placeholder="例如：audit_db">
+                        </div>
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input v-model="editingDbConfig.username" placeholder="例如：root">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>密码</label>
+                            <input type="password" v-model="editingDbConfig.password" placeholder="请输入密码">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" @click="saveDatabaseConfig" style="flex: 1;">
+                            {{ editingDbConfig.id ? '更新' : '保存' }}
+                        </button>
+                        <button v-if="editingDbConfig.id" class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditDb">
+                            取消
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 已有数据库配置列表 -->
+                <div style="padding: 30px;">
+                    <div v-if="databaseConfigs.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>暂无数据库配置，点击上方"新建"按钮添加</p>
                     </div>
                     <div v-else>
-                        <p style="color: #999; text-align: center; padding: 40px;">
-                            请先生成SQL并执行查询
-                        </p>
+                        <div v-for="db in databaseConfigs" :key="db.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e9ecef;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #333; font-size: 18px; margin-bottom: 10px;">{{ db.name }}</div>
+                                <div style="font-size: 16px; color: #666;">
+                                    <span style="background: #667eea; color: white; padding: 4px 10px; border-radius: 4px; font-size: 14px; margin-right: 12px;">{{ db.type }}</span>
+                                    {{ db.host }}:{{ db.port }} / {{ db.database }}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editDatabaseConfig(db)">
+                                    编辑
+                                </button>
+                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteDatabaseConfig(db.id)">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 配置管理区域 -->
-            <div style="padding: 30px; border-top: 2px solid #e9ecef;">
-                <div class="tabs">
-                    <button class="tab" :class="{ active: activeTab === 'database' }" @click="activeTab = 'database'">
-                        🗄️ 数据库配置
-                    </button>
-                    <button class="tab" :class="{ active: activeTab === 'template' }" @click="activeTab = 'template'">
-                        📋 提示词模板
+            <!-- 查询模板配置区域 -->
+            <div class="main-card">
+                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 28px; color: #333; margin: 0;">📋 查询模板配置</h2>
+                    <button class="btn btn-primary" @click="showTemplateForm = !showTemplateForm; if (!showTemplateForm) cancelEditTemplate();" style="padding: 12px 24px; font-size: 16px;">
+                        {{ showTemplateForm ? '取消' : '+ 新建' }}
                     </button>
                 </div>
-
-                <!-- 数据库配置标签页 -->
-                <div class="tab-content" :class="{ active: activeTab === 'database' }">
-                    <h2 style="margin-bottom: 20px;">数据库配置管理</h2>
-                    <div class="form-group">
-                        <label>数据库类型</label>
-                        <select v-model="newDatabaseConfig.type">
-                            <option value="MYSQL">MySQL</option>
-                            <option value="POSTGRESQL">PostgreSQL</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>配置名称</label>
-                        <input v-model="newDatabaseConfig.name" placeholder="例如：生产数据库">
-                    </div>
-                    <div class="form-group">
-                        <label>主机地址</label>
-                        <input v-model="newDatabaseConfig.host" placeholder="例如：localhost">
-                    </div>
-                    <div class="form-group">
-                        <label>端口</label>
-                        <input type="number" v-model.number="newDatabaseConfig.port" placeholder="例如：3306">
-                    </div>
-                    <div class="form-group">
-                        <label>数据库名</label>
-                        <input v-model="newDatabaseConfig.database" placeholder="例如：audit_db">
-                    </div>
-                    <div class="form-group">
-                        <label>用户名</label>
-                        <input v-model="newDatabaseConfig.username" placeholder="例如：root">
-                    </div>
-                    <div class="form-group">
-                        <label>密码</label>
-                        <input type="password" v-model="newDatabaseConfig.password" placeholder="请输入密码">
-                    </div>
-                    <button class="btn btn-primary" @click="saveDatabaseConfig">保存配置</button>
-
-                    <h3 style="margin-top: 30px; margin-bottom: 15px;">已有配置</h3>
-                    <div v-for="db in databaseConfigs" :key="db.id" class="config-item">
-                        <div>
-                            <div class="config-item-name">{{ db.name }}</div>
-                            <div class="config-item-details">{{ db.type }} - {{ db.host }}:{{ db.port }}/{{ db.database }}</div>
+                
+                <!-- 查询模板表单 -->
+                <div v-if="showTemplateForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label>模板名称</label>
+                            <input v-model="editingTemplate.name" placeholder="例如：应收账款查询">
                         </div>
-                        <button class="btn btn-secondary" @click="deleteDatabaseConfig(db.id)">删除</button>
+                        <div class="form-group">
+                            <label>模板描述</label>
+                            <input v-model="editingTemplate.description" placeholder="模板用途说明">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>查询示例（选择模板后自动填充到查询框）</label>
+                            <textarea v-model="editingTemplate.queryExample" style="min-height: 100px;" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" @click="saveQueryTemplate" style="flex: 1;">
+                            {{ editingTemplate.id ? '更新' : '保存' }}
+                        </button>
+                        <button v-if="editingTemplate.id" class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditTemplate">
+                            取消
+                        </button>
                     </div>
                 </div>
 
-                <!-- 提示词模板标签页 -->
-                <div class="tab-content" :class="{ active: activeTab === 'template' }">
-                    <h2 style="margin-bottom: 20px;">提示词模板管理</h2>
-                    <div class="form-group">
-                        <label>模板名称</label>
-                        <input v-model="newTemplate.name" placeholder="例如：审计查询模板">
+                <!-- 已有查询模板列表 -->
+                <div style="padding: 30px;">
+                    <div v-if="queryTemplates.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>暂无查询模板，点击上方"新建"按钮添加</p>
                     </div>
-                    <div class="form-group">
-                        <label>模板描述</label>
-                        <input v-model="newTemplate.description" placeholder="模板用途说明">
-                    </div>
-                    <div class="form-group">
-                        <label>模板内容</label>
-                        <textarea v-model="newTemplate.template" style="min-height: 200px;" placeholder="请输入模板内容，可使用变量：{{SCHEMA_DESCRIPTION}}, {{BUSINESS_TERMS}}, {{SQL_EXAMPLES}}, {{USER_QUESTION}}"></textarea>
-                    </div>
-                    <button class="btn btn-primary" @click="savePromptTemplate">保存模板</button>
-
-                    <h3 style="margin-top: 30px; margin-bottom: 15px;">已有模板</h3>
-                    <div v-for="template in promptTemplates" :key="template.id" class="config-item">
-                        <div>
-                            <div class="config-item-name">{{ template.name }}</div>
-                            <div class="config-item-details">{{ template.description }}</div>
+                    <div v-else>
+                        <div v-for="template in queryTemplates" :key="template.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e9ecef;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #333; font-size: 18px; margin-bottom: 10px;">{{ template.name }}</div>
+                                <div style="font-size: 16px; color: #666; margin-bottom: 10px;">{{ template.description }}</div>
+                                <div v-if="template.queryExample" style="font-size: 15px; color: #667eea; background: #e7f1ff; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                                    <strong>示例：</strong>{{ template.queryExample }}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editQueryTemplate(template)">
+                                    编辑
+                                </button>
+                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteQueryTemplate(template.id)">
+                                    删除
+                                </button>
+                            </div>
                         </div>
-                        <button class="btn btn-secondary" @click="deletePromptTemplate(template.id)">删除</button>
                     </div>
                 </div>
             </div>
@@ -447,16 +635,21 @@
         createApp({
             data() {
                 return {
+                    currentPage: 'query',
                     question: '',
                     selectedDatabaseId: '',
                     selectedTemplateId: '',
                     executeSql: true,
                     loading: false,
                     response: null,
+                    currentUser: null,
                     databaseConfigs: [],
-                    promptTemplates: [],
-                    activeTab: 'database',
-                    newDatabaseConfig: {
+                    queryTemplates: [],
+                    showDbForm: false,
+                    showTemplateForm: false,
+                    toasts: [],
+                    toastIdCounter: 0,
+                    editingDbConfig: {
                         type: 'MYSQL',
                         name: '',
                         host: '',
@@ -465,21 +658,50 @@
                         username: '',
                         password: ''
                     },
-                    newTemplate: {
+                    editingTemplate: {
                         name: '',
                         description: '',
-                        template: ''
+                        queryExample: ''
                     }
                 };
             },
             mounted() {
-                this.loadDatabaseConfigs();
-                this.loadPromptTemplates();
+                this.checkLogin();
+            },
+            watch: {
+                currentPage() {
+                    if (this.currentPage === 'config') {
+                        this.loadDatabaseConfigs();
+                        this.loadQueryTemplates();
+                    }
+                }
             },
             methods: {
+                async checkLogin() {
+                    try {
+                        const response = await axios.get('/api/user/current', { withCredentials: true });
+                        if (response.data.success) {
+                            this.currentUser = response.data.user;
+                            this.loadDatabaseConfigs();
+                            this.loadQueryTemplates();
+                        } else {
+                            window.location.href = '/login.html';
+                        }
+                    } catch (error) {
+                        window.location.href = '/login.html';
+                    }
+                },
+                async logout() {
+                    try {
+                        await axios.post('/api/user/logout', {}, { withCredentials: true });
+                        window.location.href = '/login.html';
+                    } catch (error) {
+                        console.error('退出失败:', error);
+                    }
+                },
                 async convert() {
                     if (!this.question || !this.selectedDatabaseId) {
-                        alert('请填写问题和选择数据库配置');
+                        this.showToast('提示', '请填写问题和选择数据库配置', 'error');
                         return;
                     }
 
@@ -490,9 +712,8 @@
                         const response = await axios.post('/api/nl2sql/convert', {
                             question: this.question,
                             databaseConfigId: this.selectedDatabaseId,
-                            promptTemplateId: this.selectedTemplateId || null,
                             executeSql: this.executeSql
-                        });
+                        }, { withCredentials: true });
                         this.response = response.data;
                     } catch (error) {
                         this.response = {
@@ -503,37 +724,57 @@
                         this.loading = false;
                     }
                 },
+                onTemplateChange() {
+                    if (this.selectedTemplateId) {
+                        const template = this.queryTemplates.find(t => t.id === this.selectedTemplateId);
+                        if (template && template.queryExample) {
+                            this.question = template.queryExample;
+                        }
+                    }
+                },
                 async loadDatabaseConfigs() {
                     try {
-                        const response = await axios.get('/api/nl2sql/database-configs');
+                        const response = await axios.get('/api/config/database-configs', { withCredentials: true });
                         this.databaseConfigs = response.data;
                     } catch (error) {
                         console.error('加载数据库配置失败:', error);
                     }
                 },
                 async saveDatabaseConfig() {
-                    if (!this.newDatabaseConfig.name || !this.newDatabaseConfig.host) {
-                        alert('请填写必填项');
+                    if (!this.editingDbConfig.name || !this.editingDbConfig.host) {
+                        this.showToast('提示', '请填写必填项', 'error');
                         return;
                     }
 
                     try {
-                        await axios.post('/api/nl2sql/database-configs', this.newDatabaseConfig);
+                        if (this.editingDbConfig.id) {
+                            await axios.put(`/api/config/database-configs/${this.editingDbConfig.id}`, this.editingDbConfig, { withCredentials: true });
+                        } else {
+                            await axios.post('/api/config/database-configs', this.editingDbConfig, { withCredentials: true });
+                        }
                         this.loadDatabaseConfigs();
-                        // 重置表单
-                        this.newDatabaseConfig = {
-                            type: 'MYSQL',
-                            name: '',
-                            host: '',
-                            port: 3306,
-                            database: '',
-                            username: '',
-                            password: ''
-                        };
-                        alert('保存成功');
+                        this.cancelEditDb();
+                        this.showToast('成功', '保存成功', 'success');
+                        this.showDbForm = false;
                     } catch (error) {
-                        alert('保存失败: ' + (error.response?.data?.message || error.message));
+                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
+                },
+                editDatabaseConfig(db) {
+                    this.editingDbConfig = { ...db };
+                    this.showDbForm = true;
+                },
+                cancelEditDb() {
+                    this.editingDbConfig = {
+                        type: 'MYSQL',
+                        name: '',
+                        host: '',
+                        port: 3306,
+                        database: '',
+                        username: '',
+                        password: ''
+                    };
+                    this.showDbForm = false;
                 },
                 async deleteDatabaseConfig(id) {
                     if (!confirm('确定要删除这个配置吗？')) {
@@ -541,57 +782,92 @@
                     }
 
                     try {
-                        await axios.delete(`/api/nl2sql/database-configs/${id}`);
+                        await axios.delete(`/api/config/database-configs/${id}`, { withCredentials: true });
                         this.loadDatabaseConfigs();
                         if (this.selectedDatabaseId === id) {
                             this.selectedDatabaseId = '';
                         }
                     } catch (error) {
-                        alert('删除失败: ' + (error.response?.data?.message || error.message));
+                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
                 },
-                async loadPromptTemplates() {
+                async loadQueryTemplates() {
                     try {
-                        const response = await axios.get('/api/nl2sql/prompt-templates');
-                        this.promptTemplates = response.data;
+                        const response = await axios.get('/api/config/query-templates', { withCredentials: true });
+                        this.queryTemplates = response.data;
                     } catch (error) {
-                        console.error('加载提示词模板失败:', error);
+                        console.error('加载查询模板失败:', error);
                     }
                 },
-                async savePromptTemplate() {
-                    if (!this.newTemplate.name || !this.newTemplate.template) {
-                        alert('请填写模板名称和内容');
+                async saveQueryTemplate() {
+                    if (!this.editingTemplate.name) {
+                        this.showToast('提示', '请填写模板名称', 'error');
                         return;
                     }
 
                     try {
-                        await axios.post('/api/nl2sql/prompt-templates', this.newTemplate);
-                        this.loadPromptTemplates();
-                        // 重置表单
-                        this.newTemplate = {
-                            name: '',
-                            description: '',
-                            template: ''
-                        };
-                        alert('保存成功');
+                        if (this.editingTemplate.id) {
+                            await axios.put(`/api/config/query-templates/${this.editingTemplate.id}`, this.editingTemplate, { withCredentials: true });
+                        } else {
+                            await axios.post('/api/config/query-templates', this.editingTemplate, { withCredentials: true });
+                        }
+                        this.loadQueryTemplates();
+                        this.cancelEditTemplate();
+                        this.showToast('成功', '保存成功', 'success');
+                        this.showTemplateForm = false;
                     } catch (error) {
-                        alert('保存失败: ' + (error.response?.data?.message || error.message));
+                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
                 },
-                async deletePromptTemplate(id) {
+                async editQueryTemplate(template) {
+                    try {
+                        const response = await axios.get(`/api/config/query-templates/${template.id}`, { withCredentials: true });
+                        this.editingTemplate = { ...response.data };
+                    } catch (error) {
+                        this.editingTemplate = { ...template };
+                    }
+                    this.showTemplateForm = true;
+                },
+                cancelEditTemplate() {
+                    this.editingTemplate = {
+                        name: '',
+                        description: '',
+                        queryExample: ''
+                    };
+                    this.showTemplateForm = false;
+                },
+                async deleteQueryTemplate(id) {
                     if (!confirm('确定要删除这个模板吗？')) {
                         return;
                     }
 
                     try {
-                        await axios.delete(`/api/nl2sql/prompt-templates/${id}`);
-                        this.loadPromptTemplates();
+                        await axios.delete(`/api/config/query-templates/${id}`, { withCredentials: true });
+                        this.loadQueryTemplates();
                         if (this.selectedTemplateId === id) {
                             this.selectedTemplateId = '';
                         }
+                        this.showToast('成功', '删除成功', 'success');
                     } catch (error) {
-                        alert('删除失败: ' + (error.response?.data?.message || error.message));
+                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
+                },
+                showToast(title, message, type) {
+                    const toast = {
+                        id: this.toastIdCounter++,
+                        title: title,
+                        message: message,
+                        type: type
+                    };
+                    this.toasts.push(toast);
+                    
+                    // 2秒后自动移除
+                    setTimeout(() => {
+                        const index = this.toasts.findIndex(t => t.id === toast.id);
+                        if (index > -1) {
+                            this.toasts.splice(index, 1);
+                        }
+                    }, 2000);
                 }
             }
         }).mount('#app');

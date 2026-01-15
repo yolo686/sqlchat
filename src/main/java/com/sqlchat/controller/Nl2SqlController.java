@@ -14,7 +14,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/nl2sql")
-@CrossOrigin(origins = "*")
+//@CrossOrigin(allowedOriginPatterns = "*", allowCredentials = "true")
 public class Nl2SqlController {
 
     @Autowired
@@ -24,62 +24,18 @@ public class Nl2SqlController {
      * 自然语言转SQL
      */
     @PostMapping("/convert")
-    public ResponseEntity<Nl2SqlResponse> convert(@RequestBody Nl2SqlRequest request) {
+    public ResponseEntity<Nl2SqlResponse> convert(@RequestBody Nl2SqlRequest request, jakarta.servlet.http.HttpSession session) {
+        // 从Session获取用户ID
+        String userId = (String) session.getAttribute("userId");
+        if (userId == null) {
+            Nl2SqlResponse errorResponse = new Nl2SqlResponse();
+            errorResponse.setSuccess(false);
+            errorResponse.setErrorMessage("请先登录");
+            return ResponseEntity.status(401).body(errorResponse);
+        }
+        request.setUserId(userId);
+        
         Nl2SqlResponse response = nl2SqlService.convert(request);
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 获取所有数据库配置
-     */
-    @GetMapping("/database-configs")
-    public ResponseEntity<List<DatabaseConfig>> getAllDatabaseConfigs() {
-        List<DatabaseConfig> configs = nl2SqlService.getAllDatabaseConfigs();
-        return ResponseEntity.ok(configs);
-    }
-
-    /**
-     * 保存数据库配置
-     */
-    @PostMapping("/database-configs")
-    public ResponseEntity<DatabaseConfig> saveDatabaseConfig(@RequestBody DatabaseConfig config) {
-        nl2SqlService.saveDatabaseConfig(config);
-        return ResponseEntity.ok(config);
-    }
-
-    /**
-     * 删除数据库配置
-     */
-    @DeleteMapping("/database-configs/{id}")
-    public ResponseEntity<Void> deleteDatabaseConfig(@PathVariable String id) {
-        nl2SqlService.deleteDatabaseConfig(id);
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * 获取所有提示词模板
-     */
-    @GetMapping("/prompt-templates")
-    public ResponseEntity<List<PromptTemplate>> getAllPromptTemplates() {
-        List<PromptTemplate> templates = nl2SqlService.getAllPromptTemplates();
-        return ResponseEntity.ok(templates);
-    }
-
-    /**
-     * 保存提示词模板
-     */
-    @PostMapping("/prompt-templates")
-    public ResponseEntity<PromptTemplate> savePromptTemplate(@RequestBody PromptTemplate template) {
-        nl2SqlService.savePromptTemplate(template);
-        return ResponseEntity.ok(template);
-    }
-
-    /**
-     * 删除提示词模板
-     */
-    @DeleteMapping("/prompt-templates/{id}")
-    public ResponseEntity<Void> deletePromptTemplate(@PathVariable String id) {
-        nl2SqlService.deletePromptTemplate(id);
-        return ResponseEntity.ok().build();
     }
 }
