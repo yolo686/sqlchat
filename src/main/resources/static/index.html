@@ -383,6 +383,7 @@
                 <div class="nav-links">
                     <a href="#" class="nav-link" :class="{ active: currentPage === 'query' }" @click.prevent="currentPage = 'query'">查询</a>
                     <a href="#" class="nav-link" :class="{ active: currentPage === 'config' }" @click.prevent="currentPage = 'config'">配置</a>
+                    <a href="#" class="nav-link" :class="{ active: currentPage === 'knowledge' }" @click.prevent="currentPage = 'knowledge'">知识库</a>
                 </div>
                 <div v-if="currentUser" style="display: flex; align-items: center; gap: 15px;">
                     <span style="color: #667eea; font-weight: 500; font-size: 16px;">{{ currentUser.username }}</span>
@@ -627,6 +628,120 @@
                 </div>
             </div>
         </div>
+
+        <!-- 知识库页面 -->
+        <div class="container" v-if="currentPage === 'knowledge'">
+            <!-- SQL示例知识库 -->
+            <div class="main-card" style="margin-bottom: 30px;">
+                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 28px; color: #333; margin: 0;">💾 SQL示例知识库</h2>
+                    <button class="btn btn-primary" @click="toggleSqlForm" style="padding: 12px 24px; font-size: 16px;">
+                        <span v-if="showSqlForm">取消</span>
+                        <span v-else>+ 新建知识点</span>
+                    </button>
+                </div>
+                
+                <!-- SQL示例表单 -->
+                <div v-if="showSqlForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                    <div class="form-group">
+                        <label>提问</label>
+                        <textarea v-model="editingSqlChunk.question" style="min-height: 100px;" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>SQL语句</label>
+                        <textarea v-model="editingSqlChunk.content" style="min-height: 150px;" placeholder="例如：SELECT SUM(amount) as total FROM accounts_receivable WHERE create_date >= '2024-01-01'"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" @click="saveSqlChunk" style="flex: 1;">
+                            <span v-if="editingSqlChunk.id">更新</span>
+                            <span v-else>保存</span>
+                        </button>
+                        <button class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditSql">
+                            取消
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SQL示例列表 -->
+                <div style="padding: 30px;">
+                    <div v-if="sqlKnowledgeBasesList.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>暂无SQL示例，点击上方"新建知识点"按钮添加</p>
+                    </div>
+                    <div v-else>
+                        <div v-for="kb in sqlKnowledgeBasesList" :key="kb.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #e9ecef;">
+                            <div style="flex: 1;">
+                                <div v-if="kb.question" style="font-size: 16px; color: #667eea; font-weight: 600; margin-bottom: 10px; background: #e7f1ff; padding: 12px; border-radius: 6px;">
+                                    <strong>提问：</strong>{{ kb.question }}
+                                </div>
+                                <div style="font-size: 16px; color: #333; white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px; margin-top: 10px;">
+                                    <strong>SQL：</strong>{{ kb.content }}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-left: 15px;">
+                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editSqlChunk(kb)">
+                                    编辑
+                                </button>
+                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteSqlChunk(kb.id)">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文档知识库 -->
+            <div class="main-card">
+                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 28px; color: #333; margin: 0;">📚 文档知识库</h2>
+                    <button class="btn btn-primary" @click="toggleDocForm" style="padding: 12px 24px; font-size: 16px;">
+                        <span v-if="showDocForm">取消</span>
+                        <span v-else>+ 新建知识点</span>
+                    </button>
+                </div>
+                
+                <!-- 文档表单 -->
+                <div v-if="showDocForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                    <div class="form-group">
+                        <label>知识点内容</label>
+                        <textarea v-model="editingDocChunk.content" style="min-height: 150px;" placeholder="例如：应收账款：企业因销售商品、提供服务等经营活动应收取的款项"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" @click="saveDocChunk" style="flex: 1;">
+                            <span v-if="editingDocChunk.id">更新</span>
+                            <span v-else>保存</span>
+                        </button>
+                        <button class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditDoc">
+                            取消
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 文档列表 -->
+                <div style="padding: 30px;">
+                    <div v-if="docKnowledgeBasesList.length === 0" class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>暂无文档，点击上方"新建知识点"按钮添加</p>
+                    </div>
+                    <div v-else>
+                        <div v-for="kb in docKnowledgeBasesList" :key="kb.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #e9ecef;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 16px; color: #333; white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px;">{{ kb.content }}</div>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-left: 15px;">
+                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editDocChunk(kb)">
+                                    编辑
+                                </button>
+                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteDocChunk(kb.id)">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -662,6 +777,22 @@
                         name: '',
                         description: '',
                         queryExample: ''
+                    },
+                    // 知识库相关
+                    sqlKnowledgeBasesList: [],
+                    docKnowledgeBasesList: [],
+                    showSqlForm: false,
+                    showDocForm: false,
+                    editingSqlChunk: {
+                        id: null,
+                        question: '',
+                        content: '',
+                        type: 'SQL_EXAMPLE'
+                    },
+                    editingDocChunk: {
+                        id: null,
+                        content: '',
+                        type: 'DOCUMENT'
                     }
                 };
             },
@@ -673,6 +804,8 @@
                     if (this.currentPage === 'config') {
                         this.loadDatabaseConfigs();
                         this.loadQueryTemplates();
+                    } else if (this.currentPage === 'knowledge') {
+                        this.loadKnowledgeBases();
                     }
                 }
             },
@@ -848,6 +981,166 @@
                             this.selectedTemplateId = '';
                         }
                         this.showToast('成功', '删除成功', 'success');
+                    } catch (error) {
+                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
+                    }
+                },
+                // 知识库相关方法
+                async loadKnowledgeBases() {
+                    try {
+                        // 加载SQL示例
+                        const sqlResponse = await axios.get('/api/knowledge-base/list?type=SQL_EXAMPLE', { withCredentials: true });
+                        if (sqlResponse.data.success) {
+                            this.sqlKnowledgeBasesList = sqlResponse.data.data || [];
+                        }
+                        
+                        // 加载文档
+                        const docResponse = await axios.get('/api/knowledge-base/list?type=DOCUMENT', { withCredentials: true });
+                        if (docResponse.data.success) {
+                            this.docKnowledgeBasesList = docResponse.data.data || [];
+                        }
+                    } catch (error) {
+                        console.error('加载知识库失败:', error);
+                    }
+                },
+                toggleSqlForm() {
+                    if (this.showSqlForm) {
+                        this.cancelEditSql();
+                    } else {
+                        this.showSqlForm = true;
+                        this.editingSqlChunk = {
+                            id: null,
+                            question: '',
+                            content: '',
+                            type: 'SQL_EXAMPLE'
+                        };
+                    }
+                },
+                toggleDocForm() {
+                    if (this.showDocForm) {
+                        this.cancelEditDoc();
+                    } else {
+                        this.showDocForm = true;
+                        this.editingDocChunk = {
+                            id: null,
+                            content: '',
+                            type: 'DOCUMENT'
+                        };
+                    }
+                },
+                async saveSqlChunk() {
+                    if (!this.editingSqlChunk.content) {
+                        this.showToast('提示', '请填写SQL语句', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const kb = {
+                            id: this.editingSqlChunk.id || null,
+                            type: 'SQL_EXAMPLE',
+                            question: this.editingSqlChunk.question || '',
+                            content: this.editingSqlChunk.content
+                        };
+                        const response = await axios.post('/api/knowledge-base/save', kb, { withCredentials: true });
+                        if (response.data.success) {
+                            this.showToast('成功', '保存成功', 'success');
+                            this.cancelEditSql();
+                            this.loadKnowledgeBases();
+                        } else {
+                            this.showToast('失败', response.data.message || '保存失败', 'error');
+                        }
+                    } catch (error) {
+                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
+                    }
+                },
+                async saveDocChunk() {
+                    if (!this.editingDocChunk.content) {
+                        this.showToast('提示', '请填写知识点内容', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const kb = {
+                            id: this.editingDocChunk.id || null,
+                            type: 'DOCUMENT',
+                            content: this.editingDocChunk.content
+                        };
+                        const response = await axios.post('/api/knowledge-base/save', kb, { withCredentials: true });
+                        if (response.data.success) {
+                            this.showToast('成功', '保存成功', 'success');
+                            this.cancelEditDoc();
+                            this.loadKnowledgeBases();
+                        } else {
+                            this.showToast('失败', response.data.message || '保存失败', 'error');
+                        }
+                    } catch (error) {
+                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
+                    }
+                },
+                editSqlChunk(kb) {
+                    this.editingSqlChunk = {
+                        id: kb.id,
+                        question: kb.question || '',
+                        content: kb.content || '',
+                        type: 'SQL_EXAMPLE'
+                    };
+                    this.showSqlForm = true;
+                },
+                editDocChunk(kb) {
+                    this.editingDocChunk = {
+                        id: kb.id,
+                        content: kb.content || '',
+                        type: 'DOCUMENT'
+                    };
+                    this.showDocForm = true;
+                },
+                cancelEditSql() {
+                    this.editingSqlChunk = {
+                        id: null,
+                        question: '',
+                        content: '',
+                        type: 'SQL_EXAMPLE'
+                    };
+                    this.showSqlForm = false;
+                },
+                cancelEditDoc() {
+                    this.editingDocChunk = {
+                        id: null,
+                        content: '',
+                        type: 'DOCUMENT'
+                    };
+                    this.showDocForm = false;
+                },
+                async deleteSqlChunk(id) {
+                    if (!confirm('确定要删除这个知识点吗？')) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await axios.delete(`/api/knowledge-base/${id}`, { withCredentials: true });
+                        if (response.data.success) {
+                            this.showToast('成功', '删除成功', 'success');
+                            this.loadKnowledgeBases();
+                        } else {
+                            this.showToast('失败', response.data.message || '删除失败', 'error');
+                        }
+                    } catch (error) {
+                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
+                    }
+                },
+                async deleteDocChunk(id) {
+                    if (!confirm('确定要删除这个知识点吗？')) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await axios.delete(`/api/knowledge-base/${id}`, { withCredentials: true });
+                        if (response.data.success) {
+                            this.showToast('成功', '删除成功', 'success');
+                            this.loadKnowledgeBases();
+                        } else {
+                            this.showToast('失败', response.data.message || '删除失败', 'error');
+                        }
                     } catch (error) {
                         this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
                     }

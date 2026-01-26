@@ -9,6 +9,7 @@ import com.sqlchat.llm.SqlGenerator;
 import com.sqlchat.model.*;
 import com.sqlchat.parser.QuestionParser;
 import com.sqlchat.rag.RagService;
+import com.sqlchat.rag.impl.VectorRagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,9 @@ public class Nl2SqlService {
 
     @Autowired
     private RagService ragService;
+
+    @Autowired
+    private VectorRagService vectorRagService;
 
     @Autowired
     private PromptFormatter promptFormatter;
@@ -62,8 +66,13 @@ public class Nl2SqlService {
             DatabaseConnection connection = connectionFactory.getConnection(dbConfig.getType());
             List<TableInfo> allTables = connection.getAllTableInfo(dbConfig);
 
-            // 4. RAG检索上下文
-            RagContext ragContext = ragService.retrieveContext(request.getQuestion(), allTables);
+            // 4. RAG检索上下文（使用用户的知识库）
+            RagContext ragContext;
+            if (vectorRagService instanceof VectorRagService) {
+                ragContext = vectorRagService.retrieveContext(request.getQuestion(), allTables, request.getUserId());
+            } else {
+                ragContext = ragService.retrieveContext(request.getQuestion(), allTables);
+            }
 
             // 5. 格式化提示词（不再使用查询模板，直接使用默认模板）
             String prompt = promptFormatter.format(parsedQuestion, ragContext, null);

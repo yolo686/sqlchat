@@ -1,6 +1,7 @@
 package com.sqlchat.controller;
 
 import com.sqlchat.entity.User;
+import com.sqlchat.service.KnowledgeBaseService;
 import com.sqlchat.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,10 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private KnowledgeBaseService knowledgeBaseService;
+
 
     /**
      * 用户注册
@@ -76,6 +81,17 @@ public class UserController {
             // 保存到Session
             session.setAttribute("userId", user.getId());
             session.setAttribute("username", user.getUsername());
+
+            // 登录成功后异步自动初始化用户知识库
+            try {
+                // 异步初始化
+                new Thread(() -> {
+                    knowledgeBaseService.initializeUserKnowledgeBase(user.getId());
+                }).start();
+            } catch (Exception e) {
+                // 初始化失败不影响登录，只记录错误
+                System.err.println("初始化用户知识库失败: " + e.getMessage());
+            }
 
             response.put("success", true);
             response.put("message", "登录成功");
