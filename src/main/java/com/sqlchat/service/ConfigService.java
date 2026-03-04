@@ -9,6 +9,8 @@ import com.sqlchat.model.QueryTemplate;
 import com.sqlchat.model.TableInfo;
 import com.sqlchat.repository.DatabaseConfigRepository;
 import com.sqlchat.repository.QueryTemplateRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 @Service
 public class ConfigService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ConfigService.class);
+
     @Autowired
     private DatabaseConfigRepository databaseConfigRepository;
 
@@ -31,6 +35,9 @@ public class ConfigService {
 
     @Autowired
     private DatabaseConnectionFactory connectionFactory;
+
+    @Autowired
+    private SchemaInfoService schemaInfoService;
 
     // ========== 数据库配置相关 ==========
 
@@ -61,7 +68,17 @@ public class ConfigService {
         entity.setPassword(config.getPassword());
 
         DatabaseConfigEntity saved = databaseConfigRepository.save(entity);
-        return convertToDatabaseConfig(saved);
+        DatabaseConfig result = convertToDatabaseConfig(saved);
+
+        // 保存/更新配置后自动拉取并缓存Schema
+        try {
+            schemaInfoService.fetchAndSaveSchema(result);
+            logger.info("已自动拉取并保存数据库配置[{}]的Schema", result.getId());
+        } catch (Exception e) {
+            logger.warn("自动拉取Schema失败（不影响配置保存）: {}", e.getMessage());
+        }
+
+        return result;
     }
 
     /**
@@ -86,7 +103,7 @@ public class ConfigService {
     }
 
     /**
-     * 删除数据库配置
+     * 删除数据库配置（同时删除关联的Schema信息）
      */
     public void deleteDatabaseConfig(String userId, String id) {
         DatabaseConfigEntity entity = databaseConfigRepository.findById(id)
@@ -94,16 +111,50 @@ public class ConfigService {
         if (!entity.getUserId().equals(userId)) {
             throw new RuntimeException("无权访问此配置");
         }
+        // 先删除关联的Schema信息
+        schemaInfoService.deleteByConfigId(id);
         databaseConfigRepository.delete(entity);
     }
 
     /**
-     * 获取数据库Schema（所有表的结构信息）
+     * 获取数据库Schema（优先从本地MySQL获取，无缓存则从远程拉取）
      */
     public List<TableInfo> getDatabaseSchema(String userId, String id) throws Exception {
         DatabaseConfig config = getDatabaseConfig(userId, id);
-        DatabaseConnection connection = connectionFactory.getConnection(config.getType());
-        return connection.getAllTableInfo(config);
+
+        // 优先从本地获取
+        if (schemaInfoService.hasLocalSchema(id)) {
+            return schemaInfoService.getLocalSchema(id);
+        }
+
+        // 本地无缓存，从远程拉取并保存
+        return schemaInfoService.fetchAndSaveSchema(config);
+    }
+
+    /**
+     * 刷新数据库Schema（从远程重新拉取，保留用户自定义注释）
+     */
+    public List<TableInfo> refreshDatabaseSchema(String userId, String id) throws Exception {
+        DatabaseConfig config = getDatabaseConfig(userId, id);
+        return schemaInfoService.fetchAndSaveSchema(config);
+    }
+
+    /**
+     * 更新表注释
+     */
+    public void updateTableComment(String userId, String configId, String tableName, String tableComment) {
+        // 验证权限
+        getDatabaseConfig(userId, configId);
+        schemaInfoService.updateTableComment(configId, tableName, tableComment);
+    }
+
+    /**
+     * 更新列注释
+     */
+    public void updateColumnComment(String userId, String configId, String tableName, String columnName, String columnComment) {
+        // 验证权限
+        getDatabaseConfig(userId, configId);
+        schemaInfoService.updateColumnComment(configId, tableName, columnName, columnComment);
     }
 
     /**

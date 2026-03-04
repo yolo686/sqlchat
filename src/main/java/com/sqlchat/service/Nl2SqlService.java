@@ -60,6 +60,9 @@ public class Nl2SqlService {
     @Autowired
     private SelfConsistencyVoter selfConsistencyVoter;
 
+    @Autowired
+    private SchemaInfoService schemaInfoService;
+
     /**
      * 执行NL2SQL转换
      */
@@ -74,9 +77,14 @@ public class Nl2SqlService {
                 return createErrorResponse("数据库配置不存在: " + request.getDatabaseConfigId());
             }
 
-            // 3. 获取表结构信息
-            DatabaseConnection connection = connectionFactory.getConnection(dbConfig.getType());
-            List<TableInfo> allTables = connection.getAllTableInfo(dbConfig);
+            // 3. 获取表结构信息（优先从本地缓存获取，包含用户自定义注释）
+            List<TableInfo> allTables;
+            if (schemaInfoService.hasLocalSchema(dbConfig.getId())) {
+                allTables = schemaInfoService.getLocalSchema(dbConfig.getId());
+            } else {
+                DatabaseConnection connection = connectionFactory.getConnection(dbConfig.getType());
+                allTables = connection.getAllTableInfo(dbConfig);
+            }
 
             // 4. RAG检索上下文（使用用户的知识库）
             RagContext ragContext;

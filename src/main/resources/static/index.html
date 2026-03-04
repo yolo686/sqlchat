@@ -525,53 +525,78 @@
             </div>
         </div>
 
-        <!-- Schema 可视化模态框 -->
-        <div v-if="showSchemaModal" class="schema-modal-overlay" @click.self="closeSchemaModal">
-            <div class="schema-modal">
-                <div class="schema-modal-header">
+        <!-- Schema 可视化模态框（支持编辑注释） -->
+        <div v-if="showSchemaModal" class="modal-overlay" @click.self="closeSchemaModal">
+            <div class="modal-content" style="width: 1400px;">
+                <div class="modal-header">
                     <h3>📊 数据库Schema信息</h3>
-                    <button class="schema-modal-close" @click="closeSchemaModal">×</button>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; font-size: 14px;" @click="refreshSchema" :disabled="schemaLoading">
+                            🔄 从远程刷新
+                        </button>
+                        <button class="modal-close" @click="closeSchemaModal">×</button>
+                    </div>
                 </div>
-                <div class="schema-modal-body">
-                    <div v-if="schemaLoading" class="schema-loading">
+                <div class="modal-body">
+                    <div v-if="schemaLoading" class="loading">
                         <p>正在加载Schema信息...</p>
                     </div>
                     <div v-else-if="schemaError" class="message error">
                         <strong>错误:</strong> {{ schemaError }}
                     </div>
-                    <div v-else-if="schemaData && schemaData.length > 0" class="schema-table-list">
+                    <div v-else-if="schemaData && schemaData.length > 0">
+                        <div style="margin-bottom: 16px; padding: 12px 16px; background: #e7f1ff; border-radius: 8px; font-size: 14px; color: #555;">
+                            💡 点击表注释或字段注释可以直接编辑，修改后按 Enter 或点击其他位置自动保存
+                        </div>
                         <div v-for="table in schemaData" :key="table.tableName" class="schema-table-card">
-                            <div class="schema-table-header">
-                                <span class="schema-table-name">{{ table.tableName }}</span>
-                                <span v-if="table.tableComment" class="schema-table-comment">({{ table.tableComment }})</span>
+                            <div class="schema-table-title">
+                                <span>📋 {{ table.tableName }}</span>
+                                <span style="font-size: 14px; color: #999; font-weight: 400; margin-left: 8px;" v-if="!table._editingComment" @click="startEditTableComment(table)">
+                                    <span v-if="table.tableComment" style="cursor: pointer; color: #666;">({{ table.tableComment }}) ✏️</span>
+                                    <span v-else style="cursor: pointer; color: #aaa; font-style: italic;">+ 添加表注释</span>
+                                </span>
+                                <span v-else style="margin-left: 8px;">
+                                    <input v-model="table._commentInput" @blur="saveTableComment(table)" @keyup.enter="saveTableComment(table)"
+                                        style="padding: 4px 8px; border: 2px solid #667eea; border-radius: 4px; font-size: 14px; width: 300px;" 
+                                        placeholder="输入表注释" autofocus>
+                                </span>
                             </div>
                             <table class="schema-columns-table">
                                 <thead>
                                     <tr>
-                                        <th>字段名</th>
-                                        <th>数据类型</th>
-                                        <th>长度</th>
-                                        <th>可空</th>
-                                        <th>主键</th>
-                                        <th>注释</th>
+                                        <th style="width: 20%;">字段名</th>
+                                        <th style="width: 12%;">数据类型</th>
+                                        <th style="width: 8%;">长度</th>
+                                        <th style="width: 8%;">可空</th>
+                                        <th style="width: 8%;">主键</th>
+                                        <th style="width: 44%;">注释 <span style="font-weight: 400; opacity: 0.8;">(可编辑)</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="column in table.columns" :key="column.columnName">
                                         <td><strong>{{ column.columnName }}</strong></td>
                                         <td>
-                                            <span class="schema-badge schema-badge-info">{{ column.dataType }}</span>
+                                            <span class="schema-badge" style="background: #17a2b8; color: white;">{{ column.dataType }}</span>
                                         </td>
                                         <td>{{ column.columnSize || '-' }}</td>
                                         <td>
-                                            <span v-if="column.nullable" class="schema-badge schema-badge-success">是</span>
+                                            <span v-if="column.nullable" class="schema-badge" style="background: #28a745; color: white;">是</span>
                                             <span v-else class="schema-badge" style="background: #dc3545; color: white;">否</span>
                                         </td>
                                         <td>
-                                            <span v-if="column.isPrimaryKey" class="schema-badge schema-badge-primary">主键</span>
+                                            <span v-if="column.isPrimaryKey" class="schema-badge badge-primary">🔑</span>
                                             <span v-else>-</span>
                                         </td>
-                                        <td>{{ column.columnComment || '-' }}</td>
+                                        <td>
+                                            <span v-if="!column._editing" @click="startEditColumnComment(table, column)" style="cursor: pointer; display: block; min-height: 24px; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" 
+                                                onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='transparent'">
+                                                <span v-if="column.columnComment">{{ column.columnComment }}</span>
+                                                <span v-else style="color: #aaa; font-style: italic;">+ 添加注释</span>
+                                            </span>
+                                            <input v-else v-model="column._commentInput" @blur="saveColumnComment(table, column)" @keyup.enter="saveColumnComment(table, column)"
+                                                style="width: 100%; padding: 4px 8px; border: 2px solid #667eea; border-radius: 4px; font-size: 14px;" 
+                                                placeholder="输入字段注释" autofocus>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -579,7 +604,7 @@
                     </div>
                     <div v-else class="empty-state">
                         <div class="empty-state-icon">📭</div>
-                        <p>该数据库中没有表</p>
+                        <p>该数据库中没有表，可以尝试点击"从远程刷新"按钮</p>
                     </div>
                 </div>
             </div>
@@ -922,6 +947,11 @@
                 </div>
 
                 <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; background: #f8f9fa;">
+                    <datalist id="domainOptions">
+                        <option value="自然资源"></option>
+                        <option value="预算执行"></option>
+                        <option value="工程投资"></option>
+                    </datalist>
                     <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>筛选领域（可选）</label>
@@ -949,11 +979,6 @@
                         <div class="form-group">
                             <label>领域</label>
                             <input v-model="editingKnowledge.domain" list="domainOptions" placeholder="自然资源 / 预算执行 / 工程投资 或手动新增">
-                            <datalist id="domainOptions">
-                                <option value="自然资源"></option>
-                                <option value="预算执行"></option>
-                                <option value="工程投资"></option>
-                            </datalist>
                         </div>
                         <div class="form-group">
                             <label>类型</label>
@@ -1066,7 +1091,8 @@
                     showSchemaModal: false,
                     schemaLoading: false,
                     schemaError: null,
-                    schemaData: []
+                    schemaData: [],
+                    schemaConfigId: null
                 };
             },
             mounted() {
@@ -1204,11 +1230,12 @@
                     this.schemaLoading = true;
                     this.schemaError = null;
                     this.schemaData = [];
+                    this.schemaConfigId = dbId;
 
                     try {
                         const response = await axios.get(`/api/config/database-configs/${dbId}/schema`, { withCredentials: true });
                         if (response.data.success) {
-                            this.schemaData = response.data.data || [];
+                            this.schemaData = this.prepareSchemaData(response.data.data || []);
                         } else {
                             this.schemaError = response.data.message || '获取Schema失败';
                         }
@@ -1222,6 +1249,76 @@
                     this.showSchemaModal = false;
                     this.schemaData = [];
                     this.schemaError = null;
+                    this.schemaConfigId = null;
+                },
+                prepareSchemaData(tables) {
+                    return tables.map(table => ({
+                        ...table,
+                        _editingComment: false,
+                        _commentInput: table.tableComment || '',
+                        columns: (table.columns || []).map(col => ({
+                            ...col,
+                            _editing: false,
+                            _commentInput: col.columnComment || ''
+                        }))
+                    }));
+                },
+                async refreshSchema() {
+                    if (!this.schemaConfigId) return;
+                    this.schemaLoading = true;
+                    this.schemaError = null;
+                    try {
+                        const response = await axios.post(`/api/config/database-configs/${this.schemaConfigId}/schema/refresh`, {}, { withCredentials: true });
+                        if (response.data.success) {
+                            this.schemaData = this.prepareSchemaData(response.data.data || []);
+                            this.showToast('成功', 'Schema已从远程数据库刷新', 'success');
+                        } else {
+                            this.schemaError = response.data.message || '刷新失败';
+                        }
+                    } catch (error) {
+                        this.schemaError = error.response?.data?.message || error.message || '刷新失败';
+                    } finally {
+                        this.schemaLoading = false;
+                    }
+                },
+                startEditTableComment(table) {
+                    table._commentInput = table.tableComment || '';
+                    table._editingComment = true;
+                },
+                async saveTableComment(table) {
+                    table._editingComment = false;
+                    const newComment = (table._commentInput || '').trim();
+                    if (newComment === (table.tableComment || '')) return;
+                    try {
+                        await axios.put(`/api/config/database-configs/${this.schemaConfigId}/schema/table-comment`, {
+                            tableName: table.tableName,
+                            tableComment: newComment
+                        }, { withCredentials: true });
+                        table.tableComment = newComment;
+                        this.showToast('成功', `表 ${table.tableName} 注释已更新`, 'success');
+                    } catch (error) {
+                        this.showToast('失败', '更新表注释失败: ' + (error.response?.data?.message || error.message), 'error');
+                    }
+                },
+                startEditColumnComment(table, column) {
+                    column._commentInput = column.columnComment || '';
+                    column._editing = true;
+                },
+                async saveColumnComment(table, column) {
+                    column._editing = false;
+                    const newComment = (column._commentInput || '').trim();
+                    if (newComment === (column.columnComment || '')) return;
+                    try {
+                        await axios.put(`/api/config/database-configs/${this.schemaConfigId}/schema/column-comment`, {
+                            tableName: table.tableName,
+                            columnName: column.columnName,
+                            columnComment: newComment
+                        }, { withCredentials: true });
+                        column.columnComment = newComment;
+                        this.showToast('成功', `字段 ${column.columnName} 注释已更新`, 'success');
+                    } catch (error) {
+                        this.showToast('失败', '更新列注释失败: ' + (error.response?.data?.message || error.message), 'error');
+                    }
                 },
                 async loadQueryTemplates() {
                     try {
@@ -1287,87 +1384,55 @@
                 // 知识库相关方法
                 async loadKnowledgeBases() {
                     try {
-                        // 加载SQL示例
-                        const sqlResponse = await axios.get('/api/knowledge-base/list?type=SQL_EXAMPLE', { withCredentials: true });
-                        if (sqlResponse.data.success) {
-                            this.sqlKnowledgeBasesList = sqlResponse.data.data || [];
-                        }
-                        
-                        // 加载文档
-                        const docResponse = await axios.get('/api/knowledge-base/list?type=DOCUMENT', { withCredentials: true });
-                        if (docResponse.data.success) {
-                            this.docKnowledgeBasesList = docResponse.data.data || [];
+                        const params = new URLSearchParams();
+                        if (this.knowledgeFilters.type) params.append('type', this.knowledgeFilters.type);
+                        if (this.knowledgeFilters.domain) params.append('domain', this.knowledgeFilters.domain.trim());
+                        const query = params.toString() ? `?${params.toString()}` : '';
+                        const response = await axios.get(`/api/knowledge-base/list${query}`, { withCredentials: true });
+                        if (response.data.success) {
+                            this.knowledgeBasesList = response.data.data || [];
                         }
                     } catch (error) {
                         console.error('加载知识库失败:', error);
                     }
                 },
-                toggleSqlForm() {
-                    if (this.showSqlForm) {
-                        this.cancelEditSql();
+                resetKnowledgeFilters() {
+                    this.knowledgeFilters = { domain: '', type: '' };
+                    this.loadKnowledgeBases();
+                },
+                toggleKnowledgeForm() {
+                    if (this.showKnowledgeForm) {
+                        this.cancelEditKnowledge();
                     } else {
-                        this.showSqlForm = true;
-                        this.editingSqlChunk = {
-                            id: null,
-                            question: '',
-                            content: '',
-                            type: 'SQL_EXAMPLE'
-                        };
+                        this.showKnowledgeForm = true;
                     }
                 },
-                toggleDocForm() {
-                    if (this.showDocForm) {
-                        this.cancelEditDoc();
-                    } else {
-                        this.showDocForm = true;
-                        this.editingDocChunk = {
-                            id: null,
-                            content: '',
-                            type: 'DOCUMENT'
-                        };
-                    }
-                },
-                async saveSqlChunk() {
-                    if (!this.editingSqlChunk.content) {
-                        this.showToast('提示', '请填写SQL语句', 'error');
+                async saveKnowledgeBase() {
+                    if (!this.editingKnowledge.type) {
+                        this.showToast('提示', '请选择知识类型', 'error');
                         return;
                     }
-                    
-                    try {
-                        const kb = {
-                            id: this.editingSqlChunk.id || null,
-                            type: 'SQL_EXAMPLE',
-                            question: this.editingSqlChunk.question || '',
-                            content: this.editingSqlChunk.content
-                        };
-                        const response = await axios.post('/api/knowledge-base/save', kb, { withCredentials: true });
-                        if (response.data.success) {
-                            this.showToast('成功', '保存成功', 'success');
-                            this.cancelEditSql();
-                            this.loadKnowledgeBases();
-                        } else {
-                            this.showToast('失败', response.data.message || '保存失败', 'error');
-                        }
-                    } catch (error) {
-                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
-                },
-                async saveDocChunk() {
-                    if (!this.editingDocChunk.content) {
+                    if (!this.editingKnowledge.content) {
                         this.showToast('提示', '请填写知识点内容', 'error');
                         return;
                     }
-                    
+                    if (this.editingKnowledge.type === 'SQL_EXAMPLE' && !this.editingKnowledge.question) {
+                        this.showToast('提示', 'SQL示例类型需要填写提问', 'error');
+                        return;
+                    }
+
                     try {
                         const kb = {
-                            id: this.editingDocChunk.id || null,
-                            type: 'DOCUMENT',
-                            content: this.editingDocChunk.content
+                            id: this.editingKnowledge.id || null,
+                            domain: this.editingKnowledge.domain ? this.editingKnowledge.domain.trim() : '',
+                            type: this.editingKnowledge.type,
+                            question: this.editingKnowledge.type === 'SQL_EXAMPLE' ? (this.editingKnowledge.question || '') : '',
+                            content: this.editingKnowledge.content
                         };
                         const response = await axios.post('/api/knowledge-base/save', kb, { withCredentials: true });
                         if (response.data.success) {
                             this.showToast('成功', '保存成功', 'success');
-                            this.cancelEditDoc();
+                            this.cancelEditKnowledge();
                             this.loadKnowledgeBases();
                         } else {
                             this.showToast('失败', response.data.message || '保存失败', 'error');
@@ -1376,45 +1441,30 @@
                         this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
                 },
-                editSqlChunk(kb) {
-                    this.editingSqlChunk = {
+                editKnowledge(kb) {
+                    this.editingKnowledge = {
                         id: kb.id,
+                        domain: kb.domain || '',
+                        type: kb.type || 'SQL_EXAMPLE',
                         question: kb.question || '',
-                        content: kb.content || '',
-                        type: 'SQL_EXAMPLE'
+                        content: kb.content || ''
                     };
-                    this.showSqlForm = true;
+                    this.showKnowledgeForm = true;
                 },
-                editDocChunk(kb) {
-                    this.editingDocChunk = {
-                        id: kb.id,
-                        content: kb.content || '',
-                        type: 'DOCUMENT'
-                    };
-                    this.showDocForm = true;
-                },
-                cancelEditSql() {
-                    this.editingSqlChunk = {
+                cancelEditKnowledge() {
+                    this.editingKnowledge = {
                         id: null,
+                        domain: '',
+                        type: 'SQL_EXAMPLE',
                         question: '',
-                        content: '',
-                        type: 'SQL_EXAMPLE'
+                        content: ''
                     };
-                    this.showSqlForm = false;
+                    this.showKnowledgeForm = false;
                 },
-                cancelEditDoc() {
-                    this.editingDocChunk = {
-                        id: null,
-                        content: '',
-                        type: 'DOCUMENT'
-                    };
-                    this.showDocForm = false;
-                },
-                async deleteSqlChunk(id) {
+                async deleteKnowledge(id) {
                     if (!confirm('确定要删除这个知识点吗？')) {
                         return;
                     }
-                    
                     try {
                         const response = await axios.delete(`/api/knowledge-base/${id}`, { withCredentials: true });
                         if (response.data.success) {
@@ -1427,22 +1477,12 @@
                         this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
                 },
-                async deleteDocChunk(id) {
-                    if (!confirm('确定要删除这个知识点吗？')) {
-                        return;
-                    }
-                    
-                    try {
-                        const response = await axios.delete(`/api/knowledge-base/${id}`, { withCredentials: true });
-                        if (response.data.success) {
-                            this.showToast('成功', '删除成功', 'success');
-                            this.loadKnowledgeBases();
-                        } else {
-                            this.showToast('失败', response.data.message || '删除失败', 'error');
-                        }
-                    } catch (error) {
-                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                typeLabel(type) {
+                    if (type === 'SQL_EXAMPLE') return 'SQL示例';
+                    if (type === 'GENERAL_DOC') return '通用文档';
+                    if (type === 'BUSINESS_RULE') return '业务规则';
+                    if (type === 'TERM_MAPPING') return '术语映射';
+                    return type || '-';
                 },
                 showToast(title, message, type) {
                     const toast = {

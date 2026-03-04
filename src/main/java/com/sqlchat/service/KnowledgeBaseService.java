@@ -52,7 +52,14 @@ public class KnowledgeBaseService {
     }
 
     private String normalizeType(String type) {
-        return type == null ? "" : type.trim().toUpperCase(Locale.ROOT);
+        if (type == null) {
+            return "";
+        }
+        String normalized = type.trim().toUpperCase(Locale.ROOT);
+        if ("DOCUMENT".equals(normalized)) {
+            return TYPE_GENERAL_DOC;
+        }
+        return normalized;
     }
 
     private String normalizeDomain(String domain) {

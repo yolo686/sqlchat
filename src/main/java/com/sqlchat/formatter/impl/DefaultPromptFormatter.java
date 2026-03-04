@@ -21,6 +21,12 @@ public class DefaultPromptFormatter implements PromptFormatter {
         ## 领域识别
         {{DOMAIN}}
         
+        ## 意图分类
+        {{INTENT}}
+        
+        ## 关键实体
+        {{KEY_ENTITIES}}
+        
         ## 审计通用文档
         {{GENERAL_DOCS}}
         
@@ -68,6 +74,9 @@ public class DefaultPromptFormatter implements PromptFormatter {
         } else {
             prompt = prompt.replace("{{DOMAIN}}", "未识别到明确领域");
         }
+        prompt = prompt.replace("{{INTENT}}",
+                question != null && question.getIntent() != null ? question.getIntent() : "通用查询");
+        prompt = prompt.replace("{{KEY_ENTITIES}}", formatEntities(question));
 
         prompt = prompt.replace("{{GENERAL_DOCS}}", formatSectionList(context != null ? context.getGeneralDocs() : null, "暂无通用文档"));
         prompt = prompt.replace("{{BUSINESS_RULES}}", formatSectionList(context != null ? context.getBusinessRules() : null, "暂无业务规则"));
@@ -110,6 +119,15 @@ public class DefaultPromptFormatter implements PromptFormatter {
         for (String item : list) {
             sb.append("- ").append(item).append("\n");
         }
+        return sb.toString();
+    }
+
+    private String formatEntities(ParsedQuestion question) {
+        if (question == null || question.getKeyEntities() == null || question.getKeyEntities().isEmpty()) {
+            return "暂无";
+        }
+        StringBuilder sb = new StringBuilder();
+        question.getKeyEntities().forEach((key, value) -> sb.append("- ").append(key).append(": ").append(value).append("\n"));
         return sb.toString();
     }
 }

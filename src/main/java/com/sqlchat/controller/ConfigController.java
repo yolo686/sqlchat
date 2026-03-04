@@ -123,7 +123,7 @@ public class ConfigController {
     }
 
     /**
-     * 获取数据库Schema（所有表的结构信息）
+     * 获取数据库Schema（优先从本地MySQL获取）
      */
     @GetMapping("/database-configs/{id}/schema")
     public ResponseEntity<Map<String, Object>> getDatabaseSchema(@PathVariable String id, HttpSession session) {
@@ -133,6 +133,81 @@ public class ConfigController {
             List<TableInfo> schema = configService.getDatabaseSchema(userId, id);
             response.put("success", true);
             response.put("data", schema);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 刷新数据库Schema（从远程数据库重新拉取，保留用户自定义注释）
+     */
+    @PostMapping("/database-configs/{id}/schema/refresh")
+    public ResponseEntity<Map<String, Object>> refreshDatabaseSchema(@PathVariable String id, HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String userId = getUserId(session);
+            List<TableInfo> schema = configService.refreshDatabaseSchema(userId, id);
+            response.put("success", true);
+            response.put("data", schema);
+            response.put("message", "Schema已刷新");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "刷新Schema失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 更新表注释
+     */
+    @PutMapping("/database-configs/{id}/schema/table-comment")
+    public ResponseEntity<Map<String, Object>> updateTableComment(
+            @PathVariable String id,
+            @RequestBody Map<String, String> request,
+            HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String userId = getUserId(session);
+            String tableName = request.get("tableName");
+            String tableComment = request.get("tableComment");
+            if (tableName == null || tableName.isEmpty()) {
+                throw new RuntimeException("表名不能为空");
+            }
+            configService.updateTableComment(userId, id, tableName, tableComment);
+            response.put("success", true);
+            response.put("message", "表注释已更新");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 更新列注释
+     */
+    @PutMapping("/database-configs/{id}/schema/column-comment")
+    public ResponseEntity<Map<String, Object>> updateColumnComment(
+            @PathVariable String id,
+            @RequestBody Map<String, String> request,
+            HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String userId = getUserId(session);
+            String tableName = request.get("tableName");
+            String columnName = request.get("columnName");
+            String columnComment = request.get("columnComment");
+            if (tableName == null || tableName.isEmpty() || columnName == null || columnName.isEmpty()) {
+                throw new RuntimeException("表名和列名不能为空");
+            }
+            configService.updateColumnComment(userId, id, tableName, columnName, columnComment);
+            response.put("success", true);
+            response.put("message", "列注释已更新");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("success", false);
