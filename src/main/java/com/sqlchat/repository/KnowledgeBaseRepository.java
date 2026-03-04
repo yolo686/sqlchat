@@ -2,7 +2,6 @@ package com.sqlchat.repository;
 
 import com.sqlchat.entity.KnowledgeBaseEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,8 +12,13 @@ import java.util.List;
  */
 @Repository
 public interface KnowledgeBaseRepository extends JpaRepository<KnowledgeBaseEntity, String> {
-    /**
-     * 根据用户ID和类型查找
-     */
+    List<KnowledgeBaseEntity> findByUserId(String userId);
+
     List<KnowledgeBaseEntity> findByUserIdAndType(String userId, String type);
+
+    List<KnowledgeBaseEntity> findByUserIdAndDomain(String userId, String domain);
+
+    List<KnowledgeBaseEntity> findByUserIdAndTypeAndDomain(String userId, String type, String domain);
+
+    boolean existsByUserIdAndDomain(String userId, String domain);
 }

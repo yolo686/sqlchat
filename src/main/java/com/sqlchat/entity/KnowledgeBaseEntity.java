@@ -25,7 +25,10 @@ public class KnowledgeBaseEntity {
     private String userId;
 
     @Column(name = "type", nullable = false, length = 20)
-    private String type; // SQL_EXAMPLE 或 DOCUMENT
+    private String type; // SQL_EXAMPLE / GENERAL_DOC / BUSINESS_RULE / TERM_MAPPING
+
+    @Column(name = "domain", length = 50)
+    private String domain; // 领域：预算执行/工程投资/自然资源（可空）
 
     @Column(name = "question", columnDefinition = "TEXT")
     private String question; // 提问（仅SQL_EXAMPLE类型使用）

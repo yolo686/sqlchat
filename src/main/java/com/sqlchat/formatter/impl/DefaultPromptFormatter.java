@@ -18,8 +18,17 @@ public class DefaultPromptFormatter implements PromptFormatter {
         ## 数据库Schema信息
         {{SCHEMA_DESCRIPTION}}
         
-        ## 业务术语说明
-        {{BUSINESS_TERMS}}
+        ## 领域识别
+        {{DOMAIN}}
+        
+        ## 审计通用文档
+        {{GENERAL_DOCS}}
+        
+        ## 审计业务规则
+        {{BUSINESS_RULES}}
+        
+        ## 术语映射
+        {{TERM_MAPPINGS}}
         
         ## 历史SQL示例
         {{SQL_EXAMPLES}}
@@ -53,16 +62,16 @@ public class DefaultPromptFormatter implements PromptFormatter {
             prompt = prompt.replace("{{SCHEMA_DESCRIPTION}}", "暂无Schema信息");
         }
         
-        // 替换业务术语
-        if (context != null && context.getBusinessTerms() != null && !context.getBusinessTerms().isEmpty()) {
-            StringBuilder termsBuilder = new StringBuilder();
-            for (String term : context.getBusinessTerms()) {
-                termsBuilder.append("- ").append(term).append("\n");
-            }
-            prompt = prompt.replace("{{BUSINESS_TERMS}}", termsBuilder.toString());
+        // 替换领域
+        if (context != null && context.getMatchedDomain() != null && !context.getMatchedDomain().isEmpty()) {
+            prompt = prompt.replace("{{DOMAIN}}", context.getMatchedDomain());
         } else {
-            prompt = prompt.replace("{{BUSINESS_TERMS}}", "暂无业务术语说明");
+            prompt = prompt.replace("{{DOMAIN}}", "未识别到明确领域");
         }
+
+        prompt = prompt.replace("{{GENERAL_DOCS}}", formatSectionList(context != null ? context.getGeneralDocs() : null, "暂无通用文档"));
+        prompt = prompt.replace("{{BUSINESS_RULES}}", formatSectionList(context != null ? context.getBusinessRules() : null, "暂无业务规则"));
+        prompt = prompt.replace("{{TERM_MAPPINGS}}", formatSectionList(context != null ? context.getTermMappings() : null, "暂无术语映射"));
         
         // 替换SQL示例
         if (context != null && context.getSqlExamples() != null && !context.getSqlExamples().isEmpty()) {
@@ -91,5 +100,16 @@ public class DefaultPromptFormatter implements PromptFormatter {
         }
         
         return prompt;
+    }
+
+    private String formatSectionList(java.util.List<String> list, String fallback) {
+        if (list == null || list.isEmpty()) {
+            return fallback;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String item : list) {
+            sb.append("- ").append(item).append("\n");
+        }
+        return sb.toString();
     }
 }

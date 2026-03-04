@@ -2,6 +2,7 @@ package com.sqlchat.rag.impl;
 
 import com.sqlchat.model.RagContext;
 import com.sqlchat.model.TableInfo;
+import com.sqlchat.model.ParsedQuestion;
 import com.sqlchat.rag.RagService;
 import com.sqlchat.service.KnowledgeBaseService;
 import dev.langchain4j.data.segment.TextSegment;
@@ -27,51 +28,21 @@ public class VectorRagService implements RagService {
 
     private final AllMiniLmL6V2QuantizedEmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
-    // 缓存每个用户的检索器
-    private final Map<String, EmbeddingStoreContentRetriever> sqlRetrievers = new HashMap<>();
-    private final Map<String, EmbeddingStoreContentRetriever> docRetrievers = new HashMap<>();
+    // 缓存每个用户+领域+类型的检索器
+    private final Map<String, EmbeddingStoreContentRetriever> retrieverCache = new HashMap<>();
 
     /**
-     * 获取用户的SQL示例检索器
-     * 注意：用户登录时已经初始化知识库，这里直接使用即可
+     * 获取检索器（按类型+领域）
      */
-    private EmbeddingStoreContentRetriever getSqlRetriever(String userId) {
-        return sqlRetrievers.computeIfAbsent(userId, uid -> {
-            InMemoryEmbeddingStore<TextSegment> store = knowledgeBaseService.getSqlStoreForUser(uid);
-            // 如果存储为空，说明还未初始化，进行初始化
-            if (store == null) {
-                knowledgeBaseService.initializeUserKnowledgeBase(uid);
-                store = knowledgeBaseService.getSqlStoreForUser(uid);
-            }
-
+    private EmbeddingStoreContentRetriever getRetriever(String userId, String type, String domain) {
+        String cacheKey = userId + "|" + (domain == null ? "" : domain.trim()) + "|" + type;
+        return retrieverCache.computeIfAbsent(cacheKey, key -> {
+            InMemoryEmbeddingStore<TextSegment> store = knowledgeBaseService.getStoreForUser(userId, type, domain);
             return EmbeddingStoreContentRetriever.builder()
                     .embeddingModel(embeddingModel)
                     .embeddingStore(store)
-                    .maxResults(3)
-                    .displayName("SQL正确示例")
-                    .build();
-        });
-    }
-
-    /**
-     * 获取用户的文档检索器
-     * 注意：用户登录时已经初始化知识库，这里直接使用即可
-     */
-    private EmbeddingStoreContentRetriever getDocRetriever(String userId) {
-
-        return docRetrievers.computeIfAbsent(userId, uid -> {
-            InMemoryEmbeddingStore<TextSegment> store = knowledgeBaseService.getDocStoreForUser(uid);
-            // 如果存储为空，说明还未初始化，进行初始化
-            if (store == null) {
-                knowledgeBaseService.initializeUserKnowledgeBase(uid);
-                store = knowledgeBaseService.getDocStoreForUser(uid);
-            }
-
-            return EmbeddingStoreContentRetriever.builder()
-                    .embeddingModel(embeddingModel)
-                    .embeddingStore(store)
-                    .maxResults(3)
-                    .displayName("文档")
+                    .maxResults(5)
+                    .displayName(type)
                     .build();
         });
     }
@@ -80,8 +51,8 @@ public class VectorRagService implements RagService {
      * 清除用户的检索器缓存（当知识库更新时调用）
      */
     public void clearUserCache(String userId) {
-        sqlRetrievers.remove(userId);
-        docRetrievers.remove(userId);
+        String prefix = userId + "|";
+        retrieverCache.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
 
@@ -94,44 +65,61 @@ public class VectorRagService implements RagService {
      * 检索上下文（带用户ID）
      */
     public RagContext retrieveContext(String question, List<TableInfo> allTables, String userId) {
+        return retrieveContext(question, allTables, userId, null);
+    }
+
+    /**
+     * 检索上下文（带用户ID + 问题解析结果）
+     */
+    public RagContext retrieveContext(String question, List<TableInfo> allTables, String userId, ParsedQuestion parsedQuestion) {
         // 直接使用所有表结构信息，生成Schema描述
         String schemaDescription = generateSchemaDescription(allTables);
 
-        List<String> docs = new ArrayList<>();
+        List<String> generalDocs = new ArrayList<>();
+        List<String> businessRules = new ArrayList<>();
+        List<String> termMappings = new ArrayList<>();
         List<String> sqlExamples = new ArrayList<>();
+        String matchedDomain = null;
 
         if (userId != null) {
-            // 从用户的知识库中检索
             try {
-                EmbeddingStoreContentRetriever docRetriever = getDocRetriever(userId);
-                List<Content> docs_content = docRetriever.retrieve(Query.from(question));
-                docs_content.forEach(content -> docs.add(content.textSegment().text()));
+                String domain = parsedQuestion != null ? parsedQuestion.getDomain() : null;
+                if (domain != null && knowledgeBaseService.hasDomainKnowledge(userId, domain)) {
+                    matchedDomain = domain;
+                }
 
-                EmbeddingStoreContentRetriever sqlRetriever = getSqlRetriever(userId);
-                List<Content> sql_examples = sqlRetriever.retrieve(Query.from(question));
-                sql_examples.forEach(content -> {
+                List<Content> sqlContents = getRetriever(userId, KnowledgeBaseService.TYPE_SQL_EXAMPLE, matchedDomain)
+                        .retrieve(Query.from(question));
+                sqlContents.forEach(content -> {
                     TextSegment segment = content.textSegment();
-                    String questionText = segment.text(); // 检索到的提问
-                    String sqlContent = segment.metadata().getString("sql_content"); // 从metadata获取SQL语句
-
-                    // 组装返回格式：提问 + SQL语句
-                    if (sqlContent != null && !sqlContent.trim().isEmpty()) {
-                        String combined = questionText + "\nSQL: " + sqlContent;
-                        sqlExamples.add(combined);
-                    } else {
-                        // 如果没有SQL语句，只返回提问（降级处理）
-                        sqlExamples.add(questionText);
-                    }
+                    String questionText = segment.text();
+                    String sqlContent = segment.metadata().getString("sql_content");
+                    sqlExamples.add(sqlContent != null && !sqlContent.trim().isEmpty()
+                            ? questionText + "\nSQL: " + sqlContent
+                            : questionText);
                 });
+
+                List<Content> docContents = getRetriever(userId, KnowledgeBaseService.TYPE_GENERAL_DOC, matchedDomain)
+                        .retrieve(Query.from(question));
+                docContents.forEach(content -> generalDocs.add(content.textSegment().text()));
+
+                List<Content> ruleContents = getRetriever(userId, KnowledgeBaseService.TYPE_BUSINESS_RULE, matchedDomain)
+                        .retrieve(Query.from(question));
+                ruleContents.forEach(content -> businessRules.add(content.textSegment().text()));
+
+                List<Content> mappingContents = getRetriever(userId, KnowledgeBaseService.TYPE_TERM_MAPPING, matchedDomain)
+                        .retrieve(Query.from(question));
+                mappingContents.forEach(content -> termMappings.add(content.textSegment().text()));
             } catch (Exception e) {
                 System.err.println("检索知识库时出错: " + e.getMessage());
             }
         }
 
-        System.out.println("参考文档：" + docs);
+        System.out.println("命中领域：" + matchedDomain);
+        System.out.println("参考文档：" + generalDocs);
         System.out.println("SQL示例：" + sqlExamples);
 
-        return new RagContext(allTables, docs, sqlExamples, schemaDescription);
+        return new RagContext(allTables, generalDocs, businessRules, termMappings, sqlExamples, schemaDescription, matchedDomain);
     }
 
     /**

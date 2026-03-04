@@ -16,4 +16,5 @@ public class Nl2SqlRequest {
     private String question; // 用户问题
     private String databaseConfigId; // 数据库配置ID
     private Boolean executeSql; // 是否执行SQL
+    private Boolean enableVoting; // 是否启用多候选投票策略
 }

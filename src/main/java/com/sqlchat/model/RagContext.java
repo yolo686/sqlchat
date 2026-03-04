@@ -15,7 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 public class RagContext {
     private List<TableInfo> relevantTables; // 相关的表结构
-    private List<String> businessTerms; // 业务术语说明
+    private List<String> generalDocs; // 通用文档
+    private List<String> businessRules; // 业务规则
+    private List<String> termMappings; // 术语映射
     private List<String> sqlExamples; // 历史SQL示例
     private String schemaDescription; // Schema描述
+    private String matchedDomain; // 命中的领域（若有）
 }

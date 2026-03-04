@@ -42,13 +42,14 @@ public class KnowledgeBaseController {
      */
     @GetMapping("/list")
     public ResponseEntity<Map<String, Object>> getKnowledgeBases(
-            @RequestParam String type,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String domain,
             HttpSession session) {
         Map<String, Object> response = new HashMap<>();
         try {
             String userId = getUserId(session);
             List<KnowledgeBase> knowledgeBases = 
-                knowledgeBaseService.getKnowledgeBasesByUser(userId, type);
+                knowledgeBaseService.getKnowledgeBasesByUser(userId, type, domain);
             response.put("success", true);
             response.put("data", knowledgeBases);
             return ResponseEntity.ok(response);

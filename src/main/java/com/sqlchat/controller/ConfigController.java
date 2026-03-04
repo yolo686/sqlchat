@@ -2,6 +2,7 @@ package com.sqlchat.controller;
 
 import com.sqlchat.model.DatabaseConfig;
 import com.sqlchat.model.QueryTemplate;
+import com.sqlchat.model.TableInfo;
 import com.sqlchat.service.ConfigService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,6 +114,25 @@ public class ConfigController {
             configService.deleteDatabaseConfig(userId, id);
             response.put("success", true);
             response.put("message", "删除成功");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * 获取数据库Schema（所有表的结构信息）
+     */
+    @GetMapping("/database-configs/{id}/schema")
+    public ResponseEntity<Map<String, Object>> getDatabaseSchema(@PathVariable String id, HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String userId = getUserId(session);
+            List<TableInfo> schema = configService.getDatabaseSchema(userId, id);
+            response.put("success", true);
+            response.put("data", schema);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("success", false);

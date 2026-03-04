@@ -1,9 +1,12 @@
 package com.sqlchat.service;
 
+import com.sqlchat.connection.DatabaseConnection;
+import com.sqlchat.connection.DatabaseConnectionFactory;
 import com.sqlchat.entity.DatabaseConfigEntity;
 import com.sqlchat.entity.QueryTemplateEntity;
 import com.sqlchat.model.DatabaseConfig;
 import com.sqlchat.model.QueryTemplate;
+import com.sqlchat.model.TableInfo;
 import com.sqlchat.repository.DatabaseConfigRepository;
 import com.sqlchat.repository.QueryTemplateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +28,9 @@ public class ConfigService {
 
     @Autowired
     private QueryTemplateRepository queryTemplateRepository;
+
+    @Autowired
+    private DatabaseConnectionFactory connectionFactory;
 
     // ========== 数据库配置相关 ==========
 
@@ -89,6 +95,15 @@ public class ConfigService {
             throw new RuntimeException("无权访问此配置");
         }
         databaseConfigRepository.delete(entity);
+    }
+
+    /**
+     * 获取数据库Schema（所有表的结构信息）
+     */
+    public List<TableInfo> getDatabaseSchema(String userId, String id) throws Exception {
+        DatabaseConfig config = getDatabaseConfig(userId, id);
+        DatabaseConnection connection = connectionFactory.getConnection(config.getType());
+        return connection.getAllTableInfo(config);
     }
 
     /**

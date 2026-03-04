@@ -359,6 +359,154 @@
                 opacity: 0;
             }
         }
+
+        /* Schema 模态框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            max-height: 90vh;
+            width: 1200px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 24px 30px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-header h3 {
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .schema-table-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .schema-table-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .schema-table-comment {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .schema-columns-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .schema-columns-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .schema-columns-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .schema-columns-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .schema-columns-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .schema-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge-nullable {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge-not-null {
+            background: #dc3545;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -373,6 +521,66 @@
                 <div class="toast-content">
                     <div class="toast-title">{{ toast.title }}</div>
                     <div class="toast-message">{{ toast.message }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema 可视化模态框 -->
+        <div v-if="showSchemaModal" class="schema-modal-overlay" @click.self="closeSchemaModal">
+            <div class="schema-modal">
+                <div class="schema-modal-header">
+                    <h3>📊 数据库Schema信息</h3>
+                    <button class="schema-modal-close" @click="closeSchemaModal">×</button>
+                </div>
+                <div class="schema-modal-body">
+                    <div v-if="schemaLoading" class="schema-loading">
+                        <p>正在加载Schema信息...</p>
+                    </div>
+                    <div v-else-if="schemaError" class="message error">
+                        <strong>错误:</strong> {{ schemaError }}
+                    </div>
+                    <div v-else-if="schemaData && schemaData.length > 0" class="schema-table-list">
+                        <div v-for="table in schemaData" :key="table.tableName" class="schema-table-card">
+                            <div class="schema-table-header">
+                                <span class="schema-table-name">{{ table.tableName }}</span>
+                                <span v-if="table.tableComment" class="schema-table-comment">({{ table.tableComment }})</span>
+                            </div>
+                            <table class="schema-columns-table">
+                                <thead>
+                                    <tr>
+                                        <th>字段名</th>
+                                        <th>数据类型</th>
+                                        <th>长度</th>
+                                        <th>可空</th>
+                                        <th>主键</th>
+                                        <th>注释</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="column in table.columns" :key="column.columnName">
+                                        <td><strong>{{ column.columnName }}</strong></td>
+                                        <td>
+                                            <span class="schema-badge schema-badge-info">{{ column.dataType }}</span>
+                                        </td>
+                                        <td>{{ column.columnSize || '-' }}</td>
+                                        <td>
+                                            <span v-if="column.nullable" class="schema-badge schema-badge-success">是</span>
+                                            <span v-else class="schema-badge" style="background: #dc3545; color: white;">否</span>
+                                        </td>
+                                        <td>
+                                            <span v-if="column.isPrimaryKey" class="schema-badge schema-badge-primary">主键</span>
+                                            <span v-else>-</span>
+                                        </td>
+                                        <td>{{ column.columnComment || '-' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>该数据库中没有表</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -426,8 +634,23 @@
                             <input type="checkbox" v-model="executeSql" id="executeSql">
                             <label for="executeSql">执行SQL并返回结果</label>
                         </div>
+                        <div class="checkbox-group" style="margin-left: 20px; position: relative;">
+                            <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" @click="enableVoting = !enableVoting">
+                                <div :style="{
+                                    width: '44px', height: '24px', borderRadius: '12px', position: 'relative', transition: 'all 0.3s',
+                                    background: enableVoting ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc'
+                                }">
+                                    <div :style="{
+                                        width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+                                        position: 'absolute', top: '2px', transition: 'all 0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                        left: enableVoting ? '22px' : '2px'
+                                    }"></div>
+                                </div>
+                                <label style="cursor: pointer; user-select: none;">多候选投票(Self-Consistency)</label>
+                            </div>
+                        </div>
                         <button class="btn btn-primary" @click="convert" :disabled="loading || !question || !selectedDatabaseId">
-                            {{ loading ? '生成中...' : '🚀 生成SQL' }}
+                            {{ loading ? (enableVoting ? '多候选生成中...' : '生成中...') : '🚀 生成SQL' }}
                         </button>
                     </div>
                 </div>
@@ -436,9 +659,65 @@
                 <div class="result-section">
                     <h2>📊 查询结果</h2>
                     <div v-if="loading" class="loading">
-                        <p>正在处理中，请稍候...</p>
+                        <p v-if="enableVoting">🗳️ 正在生成多个候选SQL并投票，请耐心等待...</p>
+                        <p v-else>正在处理中，请稍候...</p>
                     </div>
                     <div v-else-if="response">
+                        <!-- 投票信息卡片 -->
+                        <div v-if="response.votingEnabled && response.candidateSqls && response.candidateSqls.length > 0" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; padding: 24px; margin-bottom: 25px; border: 2px solid #667eea;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="margin: 0; color: #333; font-size: 20px;">🗳️ Self-Consistency 投票结果</h3>
+                                <span :style="{
+                                    padding: '6px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', color: 'white',
+                                    background: response.confidence >= 0.6 ? '#28a745' : (response.confidence >= 0.4 ? '#ffc107' : '#dc3545')
+                                }">
+                                    置信度: {{ (response.confidence * 100).toFixed(0) }}%
+                                </span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px;">
+                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                                    <div style="font-size: 28px; font-weight: 700; color: #667eea;">{{ response.totalCandidates }}</div>
+                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">候选总数</div>
+                                </div>
+                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                                    <div style="font-size: 28px; font-weight: 700; color: #28a745;">{{ response.voteCount }}</div>
+                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">最高得票</div>
+                                </div>
+                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                                    <div style="font-size: 14px; font-weight: 600; color: #764ba2; margin-top: 6px;">{{ response.votingStrategy }}</div>
+                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">投票策略</div>
+                                </div>
+                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                                    <div style="font-size: 14px; font-weight: 600; margin-top: 6px;" :style="{ color: response.degraded ? '#dc3545' : '#28a745' }">
+                                        {{ response.degraded ? '⚠️ 已降级' : '✅ 正常' }}
+                                    </div>
+                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">生成状态</div>
+                                </div>
+                            </div>
+                            <!-- 候选SQL折叠展示 -->
+                            <div>
+                                <div @click="showCandidates = !showCandidates" style="cursor: pointer; display: flex; align-items: center; gap: 8px; color: #667eea; font-weight: 600; font-size: 14px; padding: 8px 0;">
+                                    <span>{{ showCandidates ? '▼' : '▶' }} 查看所有候选SQL ({{ response.candidateSqls.length }}个)</span>
+                                </div>
+                                <div v-if="showCandidates" style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                                    <div v-for="(candidate, idx) in response.candidateSqls" :key="idx" 
+                                        :style="{
+                                            background: candidate === response.sql ? '#282c34' : '#1e2127',
+                                            color: candidate === response.sql ? '#98c379' : '#abb2bf',
+                                            padding: '14px 18px', borderRadius: '8px', fontFamily: 'Courier New, monospace',
+                                            fontSize: '14px', whiteSpace: 'pre-wrap', wordWrap: 'break-word', position: 'relative',
+                                            border: candidate === response.sql ? '2px solid #98c379' : '1px solid #3e4451'
+                                        }">
+                                        <span style="position: absolute; top: 8px; right: 12px; font-size: 12px; padding: 2px 8px; border-radius: 4px;"
+                                            :style="{ background: candidate === response.sql ? '#28a745' : '#555', color: 'white' }">
+                                            {{ candidate === response.sql ? '✓ 最佳' : '#' + (idx + 1) }}
+                                        </span>
+                                        {{ candidate }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div v-if="response.sql" class="sql-result">
                             <strong style="color: #61afef;">生成的SQL:</strong><br><br>
                             {{ response.sql }}
@@ -553,6 +832,9 @@
                                 </div>
                             </div>
                             <div style="display: flex; gap: 10px;">
+                                <button class="btn" style="background: #28a745; color: white; padding: 12px 24px; font-size: 16px;" @click="viewDatabaseSchema(db.id)">
+                                    查看Schema
+                                </button>
                                 <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editDatabaseConfig(db)">
                                     编辑
                                 </button>
@@ -631,111 +913,97 @@
 
         <!-- 知识库页面 -->
         <div class="container" v-if="currentPage === 'knowledge'">
-            <!-- SQL示例知识库 -->
-            <div class="main-card" style="margin-bottom: 30px;">
+            <div class="main-card">
                 <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="font-size: 28px; color: #333; margin: 0;">💾 SQL示例知识库</h2>
-                    <button class="btn btn-primary" @click="toggleSqlForm" style="padding: 12px 24px; font-size: 16px;">
-                        <span v-if="showSqlForm">取消</span>
-                        <span v-else>+ 新建知识点</span>
+                    <h2 style="font-size: 28px; color: #333; margin: 0;">📚 审计知识库</h2>
+                    <button class="btn btn-primary" @click="toggleKnowledgeForm" style="padding: 12px 24px; font-size: 16px;">
+                        {{ showKnowledgeForm ? '取消' : '+ 新建知识点' }}
                     </button>
                 </div>
-                
-                <!-- SQL示例表单 -->
-                <div v-if="showSqlForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                    <div class="form-group">
-                        <label>提问</label>
-                        <textarea v-model="editingSqlChunk.question" style="min-height: 100px;" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>SQL语句</label>
-                        <textarea v-model="editingSqlChunk.content" style="min-height: 150px;" placeholder="例如：SELECT SUM(amount) as total FROM accounts_receivable WHERE create_date >= '2024-01-01'"></textarea>
-                    </div>
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button class="btn btn-primary" @click="saveSqlChunk" style="flex: 1;">
-                            <span v-if="editingSqlChunk.id">更新</span>
-                            <span v-else>保存</span>
-                        </button>
-                        <button class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditSql">
-                            取消
-                        </button>
-                    </div>
-                </div>
 
-                <!-- SQL示例列表 -->
-                <div style="padding: 30px;">
-                    <div v-if="sqlKnowledgeBasesList.length === 0" class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>暂无SQL示例，点击上方"新建知识点"按钮添加</p>
-                    </div>
-                    <div v-else>
-                        <div v-for="kb in sqlKnowledgeBasesList" :key="kb.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #e9ecef;">
-                            <div style="flex: 1;">
-                                <div v-if="kb.question" style="font-size: 16px; color: #667eea; font-weight: 600; margin-bottom: 10px; background: #e7f1ff; padding: 12px; border-radius: 6px;">
-                                    <strong>提问：</strong>{{ kb.question }}
-                                </div>
-                                <div style="font-size: 16px; color: #333; white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px; margin-top: 10px;">
-                                    <strong>SQL：</strong>{{ kb.content }}
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 10px; margin-left: 15px;">
-                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editSqlChunk(kb)">
-                                    编辑
-                                </button>
-                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteSqlChunk(kb.id)">
-                                    删除
-                                </button>
-                            </div>
+                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; background: #f8f9fa;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>筛选领域（可选）</label>
+                            <input v-model="knowledgeFilters.domain" list="domainOptions" placeholder="例如：预算执行">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>筛选类型（可选）</label>
+                            <select v-model="knowledgeFilters.type">
+                                <option value="">全部类型</option>
+                                <option value="SQL_EXAMPLE">SQL示例</option>
+                                <option value="GENERAL_DOC">通用文档</option>
+                                <option value="BUSINESS_RULE">业务规则</option>
+                                <option value="TERM_MAPPING">术语映射</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" style="padding: 12px 20px; font-size: 14px;" @click="loadKnowledgeBases">筛选</button>
+                            <button class="btn" style="background: #6c757d; color: white; padding: 12px 20px; font-size: 14px;" @click="resetKnowledgeFilters">重置</button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 文档知识库 -->
-            <div class="main-card">
-                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="font-size: 28px; color: #333; margin: 0;">📚 文档知识库</h2>
-                    <button class="btn btn-primary" @click="toggleDocForm" style="padding: 12px 24px; font-size: 16px;">
-                        <span v-if="showDocForm">取消</span>
-                        <span v-else>+ 新建知识点</span>
-                    </button>
-                </div>
-                
-                <!-- 文档表单 -->
-                <div v-if="showDocForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                <div v-if="showKnowledgeForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label>领域</label>
+                            <input v-model="editingKnowledge.domain" list="domainOptions" placeholder="自然资源 / 预算执行 / 工程投资 或手动新增">
+                            <datalist id="domainOptions">
+                                <option value="自然资源"></option>
+                                <option value="预算执行"></option>
+                                <option value="工程投资"></option>
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>类型</label>
+                            <select v-model="editingKnowledge.type">
+                                <option value="SQL_EXAMPLE">SQL示例</option>
+                                <option value="GENERAL_DOC">通用文档</option>
+                                <option value="BUSINESS_RULE">业务规则</option>
+                                <option value="TERM_MAPPING">术语映射</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div v-if="editingKnowledge.type === 'SQL_EXAMPLE'" class="form-group">
+                        <label>提问</label>
+                        <textarea v-model="editingKnowledge.question" style="min-height: 100px;" placeholder="输入该SQL示例对应的问题"></textarea>
+                    </div>
+
                     <div class="form-group">
-                        <label>知识点内容</label>
-                        <textarea v-model="editingDocChunk.content" style="min-height: 150px;" placeholder="例如：应收账款：企业因销售商品、提供服务等经营活动应收取的款项"></textarea>
+                        <label>{{ editingKnowledge.type === 'SQL_EXAMPLE' ? 'SQL语句' : '知识点内容' }}</label>
+                        <textarea v-model="editingKnowledge.content" style="min-height: 150px;" :placeholder="editingKnowledge.type === 'SQL_EXAMPLE' ? '输入SQL示例' : '输入知识点内容'"></textarea>
                     </div>
+
                     <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button class="btn btn-primary" @click="saveDocChunk" style="flex: 1;">
-                            <span v-if="editingDocChunk.id">更新</span>
-                            <span v-else>保存</span>
-                        </button>
-                        <button class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditDoc">
-                            取消
-                        </button>
+                        <button class="btn btn-primary" @click="saveKnowledgeBase" style="flex: 1;">{{ editingKnowledge.id ? '更新' : '保存' }}</button>
+                        <button class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditKnowledge">取消</button>
                     </div>
                 </div>
 
-                <!-- 文档列表 -->
                 <div style="padding: 30px;">
-                    <div v-if="docKnowledgeBasesList.length === 0" class="empty-state">
+                    <div v-if="knowledgeBasesList.length === 0" class="empty-state">
                         <div class="empty-state-icon">📭</div>
-                        <p>暂无文档，点击上方"新建知识点"按钮添加</p>
+                        <p>暂无知识点，点击上方“新建知识点”添加</p>
                     </div>
                     <div v-else>
-                        <div v-for="kb in docKnowledgeBasesList" :key="kb.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #e9ecef;">
+                        <div v-for="kb in knowledgeBasesList" :key="kb.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #e9ecef;">
                             <div style="flex: 1;">
-                                <div style="font-size: 16px; color: #333; white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px;">{{ kb.content }}</div>
+                                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                                    <span style="background: #667eea; color: white; border-radius: 4px; padding: 4px 10px; font-size: 13px;">{{ kb.domain || '未指定领域' }}</span>
+                                    <span style="background: #17a2b8; color: white; border-radius: 4px; padding: 4px 10px; font-size: 13px;">{{ typeLabel(kb.type) }}</span>
+                                </div>
+                                <div v-if="kb.type === 'SQL_EXAMPLE' && kb.question" style="font-size: 16px; color: #667eea; font-weight: 600; margin-bottom: 10px; background: #e7f1ff; padding: 12px; border-radius: 6px;">
+                                    <strong>提问：</strong>{{ kb.question }}
+                                </div>
+                                <div style="font-size: 16px; color: #333; white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px;">
+                                    <strong>{{ kb.type === 'SQL_EXAMPLE' ? 'SQL：' : '内容：' }}</strong>{{ kb.content }}
+                                </div>
                             </div>
                             <div style="display: flex; gap: 10px; margin-left: 15px;">
-                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editDocChunk(kb)">
-                                    编辑
-                                </button>
-                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteDocChunk(kb.id)">
-                                    删除
-                                </button>
+                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editKnowledge(kb)">编辑</button>
+                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteKnowledge(kb.id)">删除</button>
                             </div>
                         </div>
                     </div>
@@ -755,6 +1023,8 @@
                     selectedDatabaseId: '',
                     selectedTemplateId: '',
                     executeSql: true,
+                    enableVoting: false,
+                    showCandidates: false,
                     loading: false,
                     response: null,
                     currentUser: null,
@@ -779,21 +1049,24 @@
                         queryExample: ''
                     },
                     // 知识库相关
-                    sqlKnowledgeBasesList: [],
-                    docKnowledgeBasesList: [],
-                    showSqlForm: false,
-                    showDocForm: false,
-                    editingSqlChunk: {
+                    knowledgeBasesList: [],
+                    showKnowledgeForm: false,
+                    knowledgeFilters: {
+                        domain: '',
+                        type: ''
+                    },
+                    editingKnowledge: {
                         id: null,
+                        domain: '',
+                        type: 'SQL_EXAMPLE',
                         question: '',
                         content: '',
-                        type: 'SQL_EXAMPLE'
                     },
-                    editingDocChunk: {
-                        id: null,
-                        content: '',
-                        type: 'DOCUMENT'
-                    }
+                    // Schema相关
+                    showSchemaModal: false,
+                    schemaLoading: false,
+                    schemaError: null,
+                    schemaData: []
                 };
             },
             mounted() {
@@ -840,12 +1113,14 @@
 
                     this.loading = true;
                     this.response = null;
+                    this.showCandidates = false;
 
                     try {
                         const response = await axios.post('/api/nl2sql/convert', {
                             question: this.question,
                             databaseConfigId: this.selectedDatabaseId,
-                            executeSql: this.executeSql
+                            executeSql: this.executeSql,
+                            enableVoting: this.enableVoting
                         }, { withCredentials: true });
                         this.response = response.data;
                     } catch (error) {
@@ -923,6 +1198,30 @@
                     } catch (error) {
                         this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
                     }
+                },
+                async viewDatabaseSchema(dbId) {
+                    this.showSchemaModal = true;
+                    this.schemaLoading = true;
+                    this.schemaError = null;
+                    this.schemaData = [];
+
+                    try {
+                        const response = await axios.get(`/api/config/database-configs/${dbId}/schema`, { withCredentials: true });
+                        if (response.data.success) {
+                            this.schemaData = response.data.data || [];
+                        } else {
+                            this.schemaError = response.data.message || '获取Schema失败';
+                        }
+                    } catch (error) {
+                        this.schemaError = error.response?.data?.message || error.message || '获取Schema失败';
+                    } finally {
+                        this.schemaLoading = false;
+                    }
+                },
+                closeSchemaModal() {
+                    this.showSchemaModal = false;
+                    this.schemaData = [];
+                    this.schemaError = null;
                 },
                 async loadQueryTemplates() {
                     try {

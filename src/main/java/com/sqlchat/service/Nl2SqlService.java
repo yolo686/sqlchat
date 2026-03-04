@@ -10,10 +10,14 @@ import com.sqlchat.model.*;
 import com.sqlchat.parser.QuestionParser;
 import com.sqlchat.rag.RagService;
 import com.sqlchat.rag.impl.VectorRagService;
+import com.sqlchat.voting.CandidateGenerator;
+import com.sqlchat.voting.SelfConsistencyVoter;
+import com.sqlchat.voting.VoteResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +27,8 @@ import java.util.Map;
  */
 @Service
 public class Nl2SqlService {
+
+    private static final Logger logger = LoggerFactory.getLogger(Nl2SqlService.class);
 
     @Autowired
     private QuestionParser questionParser;
@@ -48,6 +54,12 @@ public class Nl2SqlService {
     @Autowired
     private ConfigService configService;
 
+    @Autowired
+    private CandidateGenerator candidateGenerator;
+
+    @Autowired
+    private SelfConsistencyVoter selfConsistencyVoter;
+
     /**
      * 执行NL2SQL转换
      */
@@ -69,16 +81,41 @@ public class Nl2SqlService {
             // 4. RAG检索上下文（使用用户的知识库）
             RagContext ragContext;
             if (vectorRagService instanceof VectorRagService) {
-                ragContext = vectorRagService.retrieveContext(request.getQuestion(), allTables, request.getUserId());
+                ragContext = vectorRagService.retrieveContext(request.getQuestion(), allTables, request.getUserId(), parsedQuestion);
             } else {
                 ragContext = ragService.retrieveContext(request.getQuestion(), allTables);
             }
 
-            // 5. 格式化提示词（不再使用查询模板，直接使用默认模板）
+            // 5. 格式化提示词
             String prompt = promptFormatter.format(parsedQuestion, ragContext, null);
 
-            // 7. 生成SQL
-            String sql = sqlGenerator.generateSql(prompt);
+            String sql;
+            VoteResult voteResult = null;
+            boolean votingEnabled = Boolean.TRUE.equals(request.getEnableVoting());
+
+            if (votingEnabled) {
+                // ====== 多候选 + 投票模式 ======
+                logger.info("启用Self-Consistency多候选投票模式");
+
+                // 6. 并发生成多个候选SQL
+                List<String> candidates = candidateGenerator.generateCandidates(prompt);
+
+                if (candidates.isEmpty()) {
+                    return createErrorResponse("候选SQL生成失败，未获得任何有效候选");
+                }
+
+                // 7. 混合投票选出最佳SQL
+                voteResult = selfConsistencyVoter.vote(candidates, prompt, dbConfig);
+                sql = voteResult.getBestSql();
+
+                logger.info("投票完成：策略={}, 置信度={}, 得票={}/{}, 降级={}",
+                        voteResult.getStrategy(), voteResult.getConfidence(),
+                        voteResult.getVoteCount(), voteResult.getTotalCandidates(),
+                        voteResult.isDegraded());
+            } else {
+                // ====== 普通单次生成模式 ======
+                sql = sqlGenerator.generateSql(prompt);
+            }
 
             // 8. 执行SQL（如果需要）
             SqlResult executionResult = null;
@@ -99,6 +136,17 @@ public class Nl2SqlService {
             response.setParsedQuestion(parsedQuestion);
             response.setSuccess(true);
             response.setErrorMessage(null);
+            response.setVotingEnabled(votingEnabled);
+
+            // 填充投票信息
+            if (voteResult != null) {
+                response.setCandidateSqls(voteResult.getCandidateSqls());
+                response.setVoteCount(voteResult.getVoteCount());
+                response.setTotalCandidates(voteResult.getTotalCandidates());
+                response.setConfidence(voteResult.getConfidence());
+                response.setVotingStrategy(voteResult.getStrategy());
+                response.setDegraded(voteResult.isDegraded());
+            }
 
             return response;
 
@@ -106,7 +154,6 @@ public class Nl2SqlService {
             return createErrorResponse("处理请求时发生错误: " + e.getMessage());
         }
     }
-
 
     /**
      * 创建错误响应
