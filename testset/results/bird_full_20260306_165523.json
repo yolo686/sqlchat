@@ -1,0 +1,126 @@
+{
+  "dataset": "bird",
+  "ablation": "full",
+  "ablation_config": {
+    "parsing": true,
+    "sql_examples": true,
+    "rag_docs": true,
+    "voting": false,
+    "label": "全功能基线"
+  },
+  "timestamp": "2026-03-06T16:55:23.160095",
+  "metrics": {
+    "total": 5,
+    "EX": 0.0,
+    "EM": 0.0,
+    "VR": 0.0,
+    "TR": 0.0,
+    "CR": 0.0,
+    "avg_time_ms": 6.4,
+    "by_difficulty": {
+      "Easy": {
+        "count": 4,
+        "EX": 0.0,
+        "EM": 0.0,
+        "VR": 0.0
+      },
+      "Medium": {
+        "count": 1,
+        "EX": 0.0,
+        "EM": 0.0,
+        "VR": 0.0
+      }
+    },
+    "by_intent": {
+      "排名分析": {
+        "count": 1,
+        "EX": 0.0
+      },
+      "统计汇总": {
+        "count": 3,
+        "EX": 0.0
+      },
+      "通用查询": {
+        "count": 1,
+        "EX": 0.0
+      }
+    }
+  },
+  "details": [
+    {
+      "id": "BD_001",
+      "difficulty": "Easy",
+      "intent": "统计汇总",
+      "question": "银行共有多少个活跃账户？",
+      "gold_sql": "SELECT COUNT(*) AS total FROM accounts WHERE status = 'active'",
+      "generated_sql": null,
+      "ex": false,
+      "em": false,
+      "vr": false,
+      "tr": 0.0,
+      "cr": 0.0,
+      "error": null,
+      "time_ms": 7
+    },
+    {
+      "id": "BD_002",
+      "difficulty": "Easy",
+      "intent": "通用查询",
+      "question": "列出所有支行名称和所在城市",
+      "gold_sql": "SELECT branch_name, city FROM branches",
+      "generated_sql": null,
+      "ex": false,
+      "em": false,
+      "vr": false,
+      "tr": 0.0,
+      "cr": 0.0,
+      "error": null,
+      "time_ms": 6
+    },
+    {
+      "id": "BD_003",
+      "difficulty": "Easy",
+      "intent": "排名分析",
+      "question": "哪个账户余额最高？",
+      "gold_sql": "SELECT holder_name, balance FROM accounts ORDER BY balance DESC LIMIT 1",
+      "generated_sql": null,
+      "ex": false,
+      "em": false,
+      "vr": false,
+      "tr": 0.0,
+      "cr": 0.0,
+      "error": null,
+      "time_ms": 8
+    },
+    {
+      "id": "BD_004",
+      "difficulty": "Easy",
+      "intent": "统计汇总",
+      "question": "所有账户的总余额是多少？",
+      "gold_sql": "SELECT SUM(balance) AS total_balance FROM accounts",
+      "generated_sql": null,
+      "ex": false,
+      "em": false,
+      "vr": false,
+      "tr": 0.0,
+      "cr": 0.0,
+      "error": null,
+      "time_ms": 5
+    },
+    {
+      "id": "BD_005",
+      "difficulty": "Medium",
+      "intent": "统计汇总",
+      "question": "每个支行有多少个账户？",
+      "gold_sql": "SELECT b.branch_name, COUNT(*) AS account_count FROM accounts a JOIN branches b ON a.branch_id = b.branch_id GROUP BY b.branch_name",
+      "generated_sql": null,
+      "ex": false,
+      "em": false,
+      "vr": false,
+      "tr": 0.0,
+      "cr": 0.0,
+      "error": null,
+      "time_ms": 6
+    }
+  ]
+}

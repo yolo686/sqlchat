@@ -8,10 +8,16 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -138,6 +144,38 @@ public class KnowledgeBaseService {
             .map(this::convertToModel)
             .sorted(Comparator.comparing(KnowledgeBase::getChunkIndex))
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取用户知识库（分页，支持按类型/领域筛选）
+     */
+    public Map<String, Object> getKnowledgeBasesByUserPaged(String userId, String type, String domain, int page, int size) {
+        String normalizedType = normalizeType(type);
+        String normalizedDomain = normalizeDomain(domain);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("chunkIndex").ascending());
+
+        Page<KnowledgeBaseEntity> entityPage;
+        if (!normalizedType.isEmpty() && !normalizedDomain.isEmpty()) {
+            entityPage = knowledgeBaseRepository.findByUserIdAndTypeAndDomain(userId, normalizedType, normalizedDomain, pageable);
+        } else if (!normalizedType.isEmpty()) {
+            entityPage = knowledgeBaseRepository.findByUserIdAndType(userId, normalizedType, pageable);
+        } else if (!normalizedDomain.isEmpty()) {
+            entityPage = knowledgeBaseRepository.findByUserIdAndDomain(userId, normalizedDomain, pageable);
+        } else {
+            entityPage = knowledgeBaseRepository.findByUserId(userId, pageable);
+        }
+
+        List<KnowledgeBase> content = entityPage.getContent().stream()
+            .map(this::convertToModel)
+            .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", content);
+        result.put("totalElements", entityPage.getTotalElements());
+        result.put("totalPages", entityPage.getTotalPages());
+        result.put("currentPage", entityPage.getNumber());
+        result.put("pageSize", entityPage.getSize());
+        return result;
     }
 
     /**
@@ -320,6 +358,106 @@ public class KnowledgeBaseService {
     public boolean hasDomainKnowledge(String userId, String domain) {
         String normalizedDomain = normalizeDomain(domain);
         return !normalizedDomain.isEmpty() && knowledgeBaseRepository.existsByUserIdAndDomain(userId, normalizedDomain);
+    }
+
+    /**
+     * 从Markdown文件批量导入知识库
+     * 格式：每条记录以 --- 分隔，元数据用 key: value，空行后为内容
+     */
+    @Transactional
+    public Map<String, Object> importFromMarkdown(String userId, String mdContent) {
+        List<Map<String, String>> records = parseMdRecords(mdContent);
+        int success = 0, failed = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (int i = 0; i < records.size(); i++) {
+            Map<String, String> record = records.get(i);
+            try {
+                KnowledgeBase kb = new KnowledgeBase();
+                kb.setDomain(record.getOrDefault("domain", ""));
+                kb.setType(record.getOrDefault("type", "SQL_EXAMPLE"));
+                kb.setQuestion(record.getOrDefault("question", ""));
+                kb.setContent(record.getOrDefault("content", ""));
+
+                if (kb.getContent() == null || kb.getContent().trim().isEmpty()) {
+                    errors.add("第" + (i + 1) + "条: 内容为空，已跳过");
+                    failed++;
+                    continue;
+                }
+
+                saveKnowledgeBase(userId, kb);
+                success++;
+            } catch (Exception e) {
+                errors.add("第" + (i + 1) + "条: " + e.getMessage());
+                failed++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        result.put("failed", failed);
+        result.put("total", records.size());
+        result.put("errors", errors);
+        return result;
+    }
+
+    /**
+     * 解析Markdown导入文件，将内容拆分为记录列表
+     * 格式说明：
+     *  - 记录之间用单独一行 --- 分隔
+     *  - 每条记录开头为元数据行（domain: xxx, type: xxx, question: xxx）
+     *  - 元数据后空一行，再写内容（content）
+     */
+    private List<Map<String, String>> parseMdRecords(String rawContent) {
+        String content = rawContent.replace("\r\n", "\n").replace("\r", "\n");
+        // 用 --- 分隔记录
+        String[] chunks = content.split("\\n\\s*---\\s*\\n|\\n\\s*---\\s*$");
+
+        List<Map<String, String>> records = new ArrayList<>();
+        Pattern kvPattern = Pattern.compile("^([a-zA-Z_\\u4e00-\\u9fa5]+)\\s*[:：]\\s*(.*)$");
+
+        for (String chunk : chunks) {
+            chunk = chunk.trim();
+            if (chunk.isEmpty()) continue;
+
+            Map<String, String> record = new LinkedHashMap<>();
+            String[] lines = chunk.split("\\n");
+            int contentStartLine = -1;
+
+            for (int i = 0; i < lines.length; i++) {
+                String trimmedLine = lines[i].trim();
+                if (trimmedLine.isEmpty()) {
+                    contentStartLine = i + 1;
+                    break;
+                }
+                Matcher matcher = kvPattern.matcher(trimmedLine);
+                if (matcher.matches()) {
+                    String key = matcher.group(1).trim().toLowerCase();
+                    String value = matcher.group(2).trim();
+                    record.put(key, value);
+                } else {
+                    contentStartLine = i;
+                    break;
+                }
+            }
+
+            if (contentStartLine >= 0 && contentStartLine < lines.length) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = contentStartLine; i < lines.length; i++) {
+                    if (sb.length() > 0) sb.append("\n");
+                    sb.append(lines[i]);
+                }
+                String text = sb.toString().trim();
+                if (!text.isEmpty()) {
+                    record.put("content", text);
+                }
+            }
+
+            if (!record.isEmpty()) {
+                records.add(record);
+            }
+        }
+        return records;
     }
 
     /**

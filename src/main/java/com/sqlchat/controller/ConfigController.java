@@ -8,7 +8,9 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +41,28 @@ public class ConfigController {
     // ========== 数据库配置相关 ==========
 
     /**
-     * 获取所有数据库配置
+     * 获取所有数据库配置（支持可选分页：不传page返回全量列表，传page返回分页数据）
      */
     @GetMapping("/database-configs")
-    public ResponseEntity<List<DatabaseConfig>> getAllDatabaseConfigs(HttpSession session) {
+    public ResponseEntity<?> getAllDatabaseConfigs(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "5") int size,
+            HttpSession session) {
         String userId = getUserId(session);
-        List<DatabaseConfig> configs = configService.getDatabaseConfigsByUserId(userId);
-        return ResponseEntity.ok(configs);
+        if (page != null) {
+            Map<String, Object> pageData = configService.getDatabaseConfigsByUserIdPaged(userId, page, size);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", pageData.get("content"));
+            response.put("totalElements", pageData.get("totalElements"));
+            response.put("totalPages", pageData.get("totalPages"));
+            response.put("currentPage", pageData.get("currentPage"));
+            response.put("pageSize", pageData.get("pageSize"));
+            return ResponseEntity.ok(response);
+        } else {
+            List<DatabaseConfig> configs = configService.getDatabaseConfigsByUserId(userId);
+            return ResponseEntity.ok(configs);
+        }
     }
 
     /**
@@ -219,13 +236,54 @@ public class ConfigController {
     // ========== 查询模板相关 ==========
 
     /**
-     * 获取所有查询模板
+     * 获取所有查询模板（支持可选分页：不传page返回全量列表，传page返回分页数据）
      */
     @GetMapping("/query-templates")
-    public ResponseEntity<List<QueryTemplate>> getAllQueryTemplates(HttpSession session) {
+    public ResponseEntity<?> getAllQueryTemplates(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "5") int size,
+            HttpSession session) {
         String userId = getUserId(session);
-        List<QueryTemplate> templates = configService.getQueryTemplatesByUserId(userId);
-        return ResponseEntity.ok(templates);
+        if (page != null) {
+            Map<String, Object> pageData = configService.getQueryTemplatesByUserIdPaged(userId, page, size);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", pageData.get("content"));
+            response.put("totalElements", pageData.get("totalElements"));
+            response.put("totalPages", pageData.get("totalPages"));
+            response.put("currentPage", pageData.get("currentPage"));
+            response.put("pageSize", pageData.get("pageSize"));
+            return ResponseEntity.ok(response);
+        } else {
+            List<QueryTemplate> templates = configService.getQueryTemplatesByUserId(userId);
+            return ResponseEntity.ok(templates);
+        }
+    }
+
+    /**
+     * 批量导入查询模板（MD文件）
+     */
+    @PostMapping("/query-templates/import")
+    public ResponseEntity<Map<String, Object>> importQueryTemplates(
+            @RequestParam("file") MultipartFile file,
+            HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String userId = getUserId(session);
+            if (file.isEmpty()) {
+                throw new RuntimeException("上传文件为空");
+            }
+            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+            Map<String, Object> result = configService.importTemplatesFromMarkdown(userId, content);
+            response.put("success", true);
+            response.put("message", "导入完成：成功" + result.get("success") + "条，失败" + result.get("failed") + "条");
+            response.putAll(result);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "导入失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     /**

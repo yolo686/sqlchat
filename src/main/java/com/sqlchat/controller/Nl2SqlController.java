@@ -21,7 +21,7 @@ public class Nl2SqlController {
     private Nl2SqlService nl2SqlService;
 
     /**
-     * 自然语言转SQL
+     * 自然语言转SQL（前端调用，需要Session登录）
      */
     @PostMapping("/convert")
     public ResponseEntity<Nl2SqlResponse> convert(@RequestBody Nl2SqlRequest request, jakarta.servlet.http.HttpSession session) {
@@ -36,6 +36,16 @@ public class Nl2SqlController {
         request.setUserId(userId);
         
         Nl2SqlResponse response = nl2SqlService.convert(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 评测专用NL2SQL接口（独立于前端，无需Session认证）
+     * 直接传递数据库连接参数，脚本通过此接口调用消融实验
+     */
+    @PostMapping("/eval")
+    public ResponseEntity<Nl2SqlResponse> evalConvert(@RequestBody Nl2SqlEvalRequest request) {
+        Nl2SqlResponse response = nl2SqlService.evalConvert(request);
         return ResponseEntity.ok(response);
     }
 }

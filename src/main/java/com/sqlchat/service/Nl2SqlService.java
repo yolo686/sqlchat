@@ -68,8 +68,27 @@ public class Nl2SqlService {
      */
     public Nl2SqlResponse convert(Nl2SqlRequest request) {
         try {
-            // 1. 解析用户问题
-            ParsedQuestion parsedQuestion = questionParser.parse(request.getQuestion());
+            // ====== 解析消融实验开关（null 视为 true，即默认全开） ======
+            boolean useQuestionParsing = !Boolean.FALSE.equals(request.getEnableQuestionParsing());
+            boolean useSqlExamples     = !Boolean.FALSE.equals(request.getEnableSqlExamples());
+            boolean useRagDocuments    = !Boolean.FALSE.equals(request.getEnableRagDocuments());
+            boolean useVoting          = Boolean.TRUE.equals(request.getEnableVoting());
+
+            logger.info("消融配置：questionParsing={}, sqlExamples={}, ragDocuments={}, voting={}",
+                    useQuestionParsing, useSqlExamples, useRagDocuments, useVoting);
+
+            // 1. 解析用户问题（如果关闭，则使用空白解析结果）
+            ParsedQuestion parsedQuestion;
+            if (useQuestionParsing) {
+                parsedQuestion = questionParser.parse(request.getQuestion());
+            } else {
+                parsedQuestion = new ParsedQuestion(
+                    request.getQuestion(), request.getQuestion(),
+                    null, java.util.Collections.emptyList(),
+                    java.util.Collections.emptyList(), java.util.Collections.emptyList(),
+                    "通用查询", java.util.Collections.emptyMap()
+                );
+            }
 
             // 2. 获取数据库配置
             DatabaseConfig dbConfig = configService.getDatabaseConfig(request.getUserId(), request.getDatabaseConfigId());
@@ -86,7 +105,7 @@ public class Nl2SqlService {
                 allTables = connection.getAllTableInfo(dbConfig);
             }
 
-            // 4. RAG检索上下文（使用用户的知识库）
+            // 4. RAG检索上下文（根据消融开关决定检索范围）
             RagContext ragContext;
             if (vectorRagService instanceof VectorRagService) {
                 ragContext = vectorRagService.retrieveContext(request.getQuestion(), allTables, request.getUserId(), parsedQuestion);
@@ -94,14 +113,27 @@ public class Nl2SqlService {
                 ragContext = ragService.retrieveContext(request.getQuestion(), allTables);
             }
 
+            // 根据消融开关裁剪 RAG 上下文
+            if (!useSqlExamples) {
+                ragContext.setSqlExamples(java.util.Collections.emptyList());
+            }
+            if (!useRagDocuments) {
+                ragContext.setGeneralDocs(java.util.Collections.emptyList());
+                ragContext.setBusinessRules(java.util.Collections.emptyList());
+                ragContext.setTermMappings(java.util.Collections.emptyList());
+            }
+            // 如果关闭了提问解析，也清除领域匹配信息
+            if (!useQuestionParsing) {
+                ragContext.setMatchedDomain(null);
+            }
+
             // 5. 格式化提示词
             String prompt = promptFormatter.format(parsedQuestion, ragContext, null);
 
             String sql;
             VoteResult voteResult = null;
-            boolean votingEnabled = Boolean.TRUE.equals(request.getEnableVoting());
 
-            if (votingEnabled) {
+            if (useVoting) {
                 // ====== 多候选 + 投票模式 ======
                 logger.info("启用Self-Consistency多候选投票模式");
 
@@ -144,7 +176,12 @@ public class Nl2SqlService {
             response.setParsedQuestion(parsedQuestion);
             response.setSuccess(true);
             response.setErrorMessage(null);
-            response.setVotingEnabled(votingEnabled);
+            response.setVotingEnabled(useVoting);
+
+            // 回显消融实验配置
+            response.setAblationConfig(new Nl2SqlResponse.AblationConfig(
+                    useQuestionParsing, useSqlExamples, useRagDocuments, useVoting
+            ));
 
             // 填充投票信息
             if (voteResult != null) {
@@ -160,6 +197,133 @@ public class Nl2SqlService {
 
         } catch (Exception e) {
             return createErrorResponse("处理请求时发生错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 评测专用NL2SQL转换（独立于前端接口，直接传数据库连接参数获取Schema）
+     */
+    public Nl2SqlResponse evalConvert(Nl2SqlEvalRequest request) {
+        try {
+            // ====== 解析消融实验开关 ======
+            boolean useQuestionParsing = !Boolean.FALSE.equals(request.getEnableQuestionParsing());
+            boolean useSqlExamples     = !Boolean.FALSE.equals(request.getEnableSqlExamples());
+            boolean useRagDocuments    = !Boolean.FALSE.equals(request.getEnableRagDocuments());
+            boolean useVoting          = Boolean.TRUE.equals(request.getEnableVoting());
+
+            logger.info("[EVAL] 消融配置：questionParsing={}, sqlExamples={}, ragDocuments={}, voting={}",
+                    useQuestionParsing, useSqlExamples, useRagDocuments, useVoting);
+
+            // 1. 解析用户问题
+            ParsedQuestion parsedQuestion;
+            if (useQuestionParsing) {
+                parsedQuestion = questionParser.parse(request.getQuestion());
+            } else {
+                parsedQuestion = new ParsedQuestion(
+                    request.getQuestion(), request.getQuestion(),
+                    null, java.util.Collections.emptyList(),
+                    java.util.Collections.emptyList(), java.util.Collections.emptyList(),
+                    "通用查询", java.util.Collections.emptyMap()
+                );
+            }
+
+            // 2. 构建临时 DatabaseConfig（直接使用请求中的连接参数）
+            DatabaseConfig dbConfig = new DatabaseConfig(
+                    null,
+                    DatabaseType.fromString(request.getDbType()),
+                    request.getDbHost(),
+                    request.getDbPort(),
+                    request.getDbName(),
+                    request.getDbUser(),
+                    request.getDbPass(),
+                    "eval_" + request.getDbName()
+            );
+
+            // 3. 直接连接数据库获取表结构
+            DatabaseConnection connection = connectionFactory.getConnection(dbConfig.getType());
+            List<TableInfo> allTables = connection.getAllTableInfo(dbConfig);
+
+            logger.info("[EVAL] 从数据库 {} 获取到 {} 张表", request.getDbName(), allTables.size());
+
+            // 4. RAG检索上下文
+            String userId = request.getUserId();
+            RagContext ragContext;
+            if (userId != null && !userId.isEmpty()) {
+                ragContext = vectorRagService.retrieveContext(request.getQuestion(), allTables, userId, parsedQuestion);
+            } else {
+                ragContext = ragService.retrieveContext(request.getQuestion(), allTables);
+            }
+
+            // 根据消融开关裁剪 RAG 上下文
+            if (!useSqlExamples) {
+                ragContext.setSqlExamples(java.util.Collections.emptyList());
+            }
+            if (!useRagDocuments) {
+                ragContext.setGeneralDocs(java.util.Collections.emptyList());
+                ragContext.setBusinessRules(java.util.Collections.emptyList());
+                ragContext.setTermMappings(java.util.Collections.emptyList());
+            }
+            if (!useQuestionParsing) {
+                ragContext.setMatchedDomain(null);
+            }
+
+            // 5. 格式化提示词
+            String prompt = promptFormatter.format(parsedQuestion, ragContext, null);
+
+            String sql;
+            VoteResult voteResult = null;
+
+            if (useVoting) {
+                logger.info("[EVAL] 启用Self-Consistency多候选投票模式");
+                List<String> candidates = candidateGenerator.generateCandidates(prompt);
+                if (candidates.isEmpty()) {
+                    return createErrorResponse("候选SQL生成失败，未获得任何有效候选");
+                }
+                voteResult = selfConsistencyVoter.vote(candidates, prompt, dbConfig);
+                sql = voteResult.getBestSql();
+            } else {
+                sql = sqlGenerator.generateSql(prompt);
+            }
+
+            // 6. 执行SQL（如果需要）
+            SqlResult executionResult = null;
+            if (Boolean.TRUE.equals(request.getExecuteSql())) {
+                SqlExecutor executor = executorFactory.getExecutor(dbConfig.getType());
+                try {
+                    List<Map<String, Object>> data = executor.executeQuery(dbConfig, sql);
+                    executionResult = new SqlResult(sql, data, data.size(), true, null);
+                } catch (Exception e) {
+                    executionResult = new SqlResult(sql, null, 0, false, e.getMessage());
+                }
+            }
+
+            // 7. 构建响应
+            Nl2SqlResponse response = new Nl2SqlResponse();
+            response.setSql(sql);
+            response.setExecutionResult(executionResult);
+            response.setParsedQuestion(parsedQuestion);
+            response.setSuccess(true);
+            response.setErrorMessage(null);
+            response.setVotingEnabled(useVoting);
+
+            response.setAblationConfig(new Nl2SqlResponse.AblationConfig(
+                    useQuestionParsing, useSqlExamples, useRagDocuments, useVoting
+            ));
+
+            if (voteResult != null) {
+                response.setCandidateSqls(voteResult.getCandidateSqls());
+                response.setVoteCount(voteResult.getVoteCount());
+                response.setTotalCandidates(voteResult.getTotalCandidates());
+                response.setConfidence(voteResult.getConfidence());
+                response.setVotingStrategy(voteResult.getStrategy());
+                response.setDegraded(voteResult.isDegraded());
+            }
+
+            return response;
+
+        } catch (Exception e) {
+            logger.error("[EVAL] 处理请求时发生错误", e);
+            return createErrorResponse("评测请求处理失败: " + e.getMessage());
         }
     }
 

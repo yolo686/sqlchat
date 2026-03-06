@@ -12,10 +12,14 @@ import com.sqlchat.repository.QueryTemplateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -88,6 +92,25 @@ public class ConfigService {
         return databaseConfigRepository.findByUserId(userId).stream()
             .map(this::convertToDatabaseConfig)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取用户的数据库配置列表（分页）
+     */
+    public Map<String, Object> getDatabaseConfigsByUserIdPaged(String userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DatabaseConfigEntity> entityPage = databaseConfigRepository.findByUserId(userId, pageable);
+        List<DatabaseConfig> content = entityPage.getContent().stream()
+            .map(this::convertToDatabaseConfig)
+            .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", content);
+        result.put("totalElements", entityPage.getTotalElements());
+        result.put("totalPages", entityPage.getTotalPages());
+        result.put("currentPage", entityPage.getNumber());
+        result.put("pageSize", entityPage.getSize());
+        return result;
     }
 
     /**
@@ -212,6 +235,25 @@ public class ConfigService {
     }
 
     /**
+     * 获取用户的查询模板列表（分页）
+     */
+    public Map<String, Object> getQueryTemplatesByUserIdPaged(String userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<QueryTemplateEntity> entityPage = queryTemplateRepository.findByUserId(userId, pageable);
+        List<QueryTemplate> content = entityPage.getContent().stream()
+            .map(this::convertToQueryTemplate)
+            .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", content);
+        result.put("totalElements", entityPage.getTotalElements());
+        result.put("totalPages", entityPage.getTotalPages());
+        result.put("currentPage", entityPage.getNumber());
+        result.put("pageSize", entityPage.getSize());
+        return result;
+    }
+
+    /**
      * 获取单个查询模板
      */
     public QueryTemplate getQueryTemplate(String userId, String id) {
@@ -233,6 +275,79 @@ public class ConfigService {
             throw new RuntimeException("无权访问此模板");
         }
         queryTemplateRepository.delete(entity);
+    }
+
+    /**
+     * 从Markdown文件批量导入查询模板
+     */
+    public Map<String, Object> importTemplatesFromMarkdown(String userId, String mdContent) {
+        List<Map<String, String>> records = parseMdRecords(mdContent);
+        int success = 0, failed = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (int i = 0; i < records.size(); i++) {
+            Map<String, String> record = records.get(i);
+            try {
+                QueryTemplate template = new QueryTemplate();
+                template.setName(record.getOrDefault("name", "").trim());
+                template.setDescription(record.getOrDefault("description", "").trim());
+                template.setQueryExample(record.getOrDefault("queryexample", "").trim());
+
+                if (template.getName().isEmpty()) {
+                    errors.add("第" + (i + 1) + "条: 模板名称为空，已跳过");
+                    failed++;
+                    continue;
+                }
+
+                saveQueryTemplate(userId, template);
+                success++;
+            } catch (Exception e) {
+                errors.add("第" + (i + 1) + "条: " + e.getMessage());
+                failed++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        result.put("failed", failed);
+        result.put("total", records.size());
+        result.put("errors", errors);
+        return result;
+    }
+
+    /**
+     * 解析Markdown导入文件
+     */
+    private List<Map<String, String>> parseMdRecords(String rawContent) {
+        String content = rawContent.replace("\r\n", "\n").replace("\r", "\n");
+        String[] chunks = content.split("\\n\\s*---\\s*\\n|\\n\\s*---\\s*$");
+
+        List<Map<String, String>> records = new ArrayList<>();
+        Pattern kvPattern = Pattern.compile("^([a-zA-Z_\\u4e00-\\u9fa5]+)\\s*[:：]\\s*(.*)$");
+
+        for (String chunk : chunks) {
+            chunk = chunk.trim();
+            if (chunk.isEmpty()) continue;
+
+            Map<String, String> record = new LinkedHashMap<>();
+            String[] lines = chunk.split("\\n");
+
+            for (String line : lines) {
+                String trimmedLine = line.trim();
+                if (trimmedLine.isEmpty()) continue;
+                Matcher matcher = kvPattern.matcher(trimmedLine);
+                if (matcher.matches()) {
+                    String key = matcher.group(1).trim().toLowerCase();
+                    String value = matcher.group(2).trim();
+                    record.put(key, value);
+                }
+            }
+
+            if (!record.isEmpty()) {
+                records.add(record);
+            }
+        }
+        return records;
     }
 
     /**

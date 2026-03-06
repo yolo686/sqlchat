@@ -28,4 +28,17 @@ public class Nl2SqlResponse {
     private Double confidence;             // 置信度
     private String votingStrategy;         // 使用的投票策略
     private Boolean degraded;              // 是否降级生成
+
+    // ====== 消融实验信息 (Ablation Study Info) ======
+    private AblationConfig ablationConfig; // 消融实验配置回显
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AblationConfig {
+        private boolean questionParsing;   // 是否开启了提问解析
+        private boolean sqlExamples;       // 是否开启了SQL示例
+        private boolean ragDocuments;      // 是否开启了RAG文档
+        private boolean voting;            // 是否开启了候选投票
+    }
 }

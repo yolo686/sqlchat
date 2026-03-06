@@ -3,521 +3,563 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NL2SQL - 自然语言转SQL工具</title>
+    <title>NL2SQL - 智能审计SQL生成平台</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f0f2f5;
             min-height: 100vh;
-            font-size: 16px;
+            color: #333;
         }
 
+        /* ========== 导航栏 ========== */
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: white;
+            padding: 0 40px;
+            height: 60px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar .brand {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; gap: 4px; }
+        .nav-link {
+            padding: 8px 20px;
+            text-decoration: none;
+            color: #64748b;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .nav-link:hover { color: #4f46e5; background: #f1f5f9; }
+        .nav-link.active {
+            color: #4f46e5;
+            background: #eef2ff;
+            font-weight: 600;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-info .username {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .btn-logout {
+            padding: 6px 16px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+        /* ========== 布局 ========== */
+        .page-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px 24px 48px;
+        }
+
+        /* ========== 卡片 ========== */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+        .card + .card { margin-top: 20px; }
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f1f5f9;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
-        .navbar h1 {
-            font-size: 28px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .navbar .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-
-        .nav-link {
-            padding: 10px 24px;
-            text-decoration: none;
-            color: #667eea;
-            border-radius: 6px;
-            transition: all 0.3s;
-            font-weight: 500;
-            font-size: 16px;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-
-        .main-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        .query-section {
-            padding: 40px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .query-section h2 {
-            font-size: 28px;
-            margin-bottom: 25px;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 600;
-            color: #555;
-            font-size: 16px;
-        }
-
-        .form-group select,
-        .form-group textarea,
-        .form-group input {
-            width: 100%;
-            padding: 16px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
-            font-family: inherit;
-        }
-
-        .form-group select:focus,
-        .form-group textarea:focus,
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-group textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-top: 25px;
-        }
-
-        .checkbox-group {
+        .card-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+        .card-body { padding: 24px; }
 
-        .checkbox-group input[type="checkbox"] {
-            width: auto;
+        /* ========== 表单 ========== */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
         }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+            letter-spacing: 0.01em;
+        }
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-family: inherit;
+            background: white;
+            color: #1e293b;
+        }
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
+        }
+        .form-group textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
 
+        /* ========== 按钮 ========== */
         .btn {
-            padding: 16px 32px;
+            padding: 10px 20px;
             border: none;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
             color: white;
         }
-
         .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79,70,229,0.35);
         }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
         }
-
-        .result-section {
-            padding: 40px;
-            background: #f8f9fa;
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-success { background: #059669; color: white; }
+        .btn-success:hover { background: #047857; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-ghost {
+            background: transparent;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
         }
+        .btn-ghost:hover { background: #f8fafc; }
 
-        .result-section h2 {
-            font-size: 28px;
-            margin-bottom: 25px;
-            color: #333;
-        }
-
-        .sql-result {
-            background: #282c34;
-            color: #abb2bf;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            overflow-x: auto;
-            margin-bottom: 25px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
-        }
-
-        .data-table-container {
+        /* ========== 数据表格 ========== */
+        .data-table-wrap {
             background: white;
             border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+            max-height: 500px;
+            border: 1px solid #e2e8f0;
         }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 16px;
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td {
+            padding: 10px 16px;
             text-align: left;
-            border-bottom: 1px solid #e9ecef;
-            font-size: 16px;
+            font-size: 13px;
+            border-bottom: 1px solid #f1f5f9;
+            white-space: nowrap;
         }
-
         .data-table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #f8fafc;
+            color: #475569;
             font-weight: 600;
             position: sticky;
             top: 0;
+            z-index: 1;
         }
+        .data-table tbody tr:hover { background: #fafbff; }
 
-        .data-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .message {
-            padding: 18px 24px;
+        /* ========== SQL结果 ========== */
+        .sql-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* ========== 消息 ========== */
+        .msg {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 16px;
+            gap: 10px;
+            margin-bottom: 16px;
         }
+        .msg-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .msg-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .msg-info { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
 
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border-left: 4px solid #28a745;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border-left: 4px solid #dc3545;
-        }
-
-        .message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-left: 4px solid #17a2b8;
-        }
-
-        .loading {
+        /* ========== 空状态 ========== */
+        .empty {
             text-align: center;
-            padding: 40px;
-            color: #667eea;
+            padding: 48px 20px;
+            color: #94a3b8;
         }
+        .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+        .empty p { font-size: 14px; }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
+        /* ========== 加载 ========== */
+        .loading { text-align: center; padding: 40px; color: #818cf8; font-size: 14px; }
 
-        .empty-state-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        /* Toast 提示组件 */
-        .toast-container {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            pointer-events: none;
-        }
-
-        .toast {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-            padding: 24px 32px;
-            min-width: 400px;
-            max-width: 500px;
-            display: flex;
+        /* ========== 标签 ========== */
+        .tag {
+            display: inline-flex;
             align-items: center;
-            gap: 20px;
-            animation: slideInCenter 0.3s ease-out, fadeOut 0.3s ease-in 1.7s;
-            animation-fill-mode: both;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
         }
+        .tag-primary { background: #eef2ff; color: #4f46e5; }
+        .tag-info { background: #ecfeff; color: #0891b2; }
+        .tag-success { background: #ecfdf5; color: #059669; }
+        .tag-warning { background: #fffbeb; color: #d97706; }
+        .tag-secondary { background: #f1f5f9; color: #64748b; }
 
-        .toast.success {
-            border-left: 4px solid #28a745;
+        /* ========== 列表项 ========== */
+        .list-item {
+            padding: 16px 20px;
+            border: 1px solid #f1f5f9;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            transition: all 0.2s;
+            background: #fafbff;
         }
-
-        .toast.error {
-            border-left: 4px solid #dc3545;
+        .list-item:hover {
+            border-color: #c7d2fe;
+            box-shadow: 0 2px 8px rgba(79,70,229,0.06);
         }
-
-        .toast-icon {
-            font-size: 24px;
+        .list-item-body { flex: 1; min-width: 0; }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1e293b;
+            margin-bottom: 6px;
+        }
+        .list-item-desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+        .list-item-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 16px;
             flex-shrink: 0;
         }
 
-        .toast.success .toast-icon {
-            color: #28a745;
-        }
-
-        .toast.error .toast-icon {
-            color: #dc3545;
-        }
-
-        .toast-content {
-            flex: 1;
-        }
-
-        .toast-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .toast-message {
-            font-size: 16px;
-            color: #666;
-        }
-
-        @keyframes slideInCenter {
-            from {
-                transform: translate(-50%, -50%) scale(0.8);
-                opacity: 0;
-            }
-            to {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeOut {
-            from {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 1;
-            }
-            to {
-                transform: translate(-50%, -50%) scale(0.9);
-                opacity: 0;
-            }
-        }
-
-        /* Schema 模态框样式 */
-        .modal-overlay {
+        /* ========== 模态框 ========== */
+        .modal-mask {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
+            inset: 0;
+            background: rgba(15,23,42,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9000;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 24px;
         }
-
-        .modal-content {
+        .modal-dialog {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 90%;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            width: 100%;
             max-height: 90vh;
-            width: 1200px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            animation: modalIn 0.25s ease-out;
         }
-
-        .modal-header {
-            padding: 24px 30px;
-            border-bottom: 2px solid #f0f0f0;
+        .modal-sm { max-width: 560px; }
+        .modal-md { max-width: 720px; }
+        .modal-lg { max-width: 1000px; }
+        .modal-xl { max-width: 1400px; }
+        @keyframes modalIn {
+            from { transform: scale(0.95) translateY(10px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .modal-head {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f1f5f9;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
         }
-
-        .modal-header h3 {
-            font-size: 24px;
-            margin: 0;
-            font-weight: 600;
+        .modal-head h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
         }
-
-        .modal-close {
-            background: rgba(255, 255, 255, 0.2);
+        .modal-close-btn {
+            width: 32px; height: 32px;
             border: none;
-            color: white;
-            font-size: 24px;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 18px;
+            color: #64748b;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
-
-        .modal-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: rotate(90deg);
-        }
-
-        .modal-body {
-            padding: 30px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .schema-table-card {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #e9ecef;
-        }
-
-        .schema-table-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
+        .modal-close-btn:hover { background: #e2e8f0; color: #1e293b; }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #f1f5f9;
             display: flex;
-            align-items: center;
+            justify-content: flex-end;
             gap: 10px;
         }
 
-        .schema-table-comment {
-            font-size: 14px;
-            color: #666;
+        /* ========== Schema模态框 ========== */
+        .schema-modal-head {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+        .schema-modal-head h3 { font-size: 18px; font-weight: 700; color: white; }
+        .schema-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 16px;
             margin-bottom: 16px;
-            font-style: italic;
+            border: 1px solid #e2e8f0;
         }
+        .schema-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .schema-col-table { width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; }
+        .schema-col-table thead { background: #f1f5f9; }
+        .schema-col-table th { padding: 8px 14px; text-align: left; font-weight: 600; font-size: 12px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+        .schema-col-table td { padding: 8px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .schema-col-table tbody tr:hover { background: #fafbff; }
 
-        .schema-columns-table {
-            width: 100%;
-            border-collapse: collapse;
+        /* ========== Toggle开关 ========== */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-track {
+            width: 40px; height: 22px;
+            border-radius: 11px;
+            position: relative;
+            transition: all 0.25s;
+        }
+        .toggle-track.on { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+        .toggle-track.off { background: #cbd5e1; }
+        .toggle-thumb {
+            width: 18px; height: 18px;
+            border-radius: 50%;
             background: white;
-            border-radius: 6px;
-            overflow: hidden;
+            position: absolute;
+            top: 2px;
+            transition: all 0.25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-track.on .toggle-thumb { left: 20px; }
+        .toggle-track.off .toggle-thumb { left: 2px; }
+        .toggle-label { font-size: 13px; color: #475569; font-weight: 500; }
+
+        /* ========== 投票卡片 ========== */
+        .vote-card {
+            background: #fafbff;
+            border: 1px solid #c7d2fe;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .vote-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .vote-stat {
+            background: white;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .vote-stat-value { font-size: 24px; font-weight: 700; }
+        .vote-stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+        /* ========== 筛选栏 ========== */
+        .filter-bar {
+            padding: 16px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .filter-bar .form-group { margin-bottom: 0; flex: 1; }
+
+        /* ========== Toast ========== */
+        .toast-container {
+            position: fixed;
+            top: 72px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 14px 20px;
+            min-width: 320px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 1.7s;
+            animation-fill-mode: both;
+        }
+        .toast.success { border-left: 4px solid #059669; }
+        .toast.error { border-left: 4px solid #dc2626; }
+        .toast-icon { font-size: 20px; flex-shrink: 0; }
+        .toast.success .toast-icon { color: #059669; }
+        .toast.error .toast-icon { color: #dc2626; }
+        .toast-content { flex: 1; }
+        .toast-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+        .toast-message { font-size: 13px; color: #64748b; margin-top: 2px; }
+        @keyframes toastIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(20px); } }
+
+        /* ========== 复选框 ========== */
+        .check-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #475569;
+        }
+        .check-group input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4f46e5; }
+
+        /* ========== 操作栏 ========== */
+        .actions-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
         }
 
-        .schema-columns-table thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* ========== 分页 ========== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            padding: 16px 0 4px;
+        }
+        .pagination .page-btn {
+            min-width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0 6px;
+        }
+        .pagination .page-btn:hover:not(:disabled):not(.active) { background: #f1f5f9; border-color: #cbd5e1; }
+        .pagination .page-btn.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
             color: white;
+            border-color: transparent;
+            font-weight: 700;
         }
-
-        .schema-columns-table th {
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .schema-columns-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #e9ecef;
-            font-size: 14px;
-        }
-
-        .schema-columns-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .schema-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-right: 8px;
-        }
-
-        .badge-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .badge-nullable {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .badge-not-null {
-            background: #dc3545;
-            color: white;
+        .pagination .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pagination .page-info {
+            font-size: 13px;
+            color: #94a3b8;
+            margin: 0 8px;
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- Toast 提示容器 -->
+        <!-- Toast -->
         <div class="toast-container">
             <div v-for="toast in toasts" :key="toast.id" :class="['toast', toast.type]">
-                <div class="toast-icon">
-                    <span v-if="toast.type === 'success'">✓</span>
-                    <span v-else>✗</span>
-                </div>
+                <div class="toast-icon"><span v-if="toast.type==='success'">✓</span><span v-else>✗</span></div>
                 <div class="toast-content">
                     <div class="toast-title">{{ toast.title }}</div>
                     <div class="toast-message">{{ toast.message }}</div>
@@ -525,280 +567,69 @@
             </div>
         </div>
 
-        <!-- Schema 可视化模态框（支持编辑注释） -->
-        <div v-if="showSchemaModal" class="modal-overlay" @click.self="closeSchemaModal">
-            <div class="modal-content" style="width: 1400px;">
-                <div class="modal-header">
-                    <h3>📊 数据库Schema信息</h3>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <button class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; font-size: 14px;" @click="refreshSchema" :disabled="schemaLoading">
-                            🔄 从远程刷新
-                        </button>
-                        <button class="modal-close" @click="closeSchemaModal">×</button>
+        <!-- ==================== Schema模态框 ==================== -->
+        <div v-if="showSchemaModal" class="modal-mask" @click.self="closeSchemaModal">
+            <div class="modal-dialog modal-xl">
+                <div class="schema-modal-head">
+                    <h3>📊 数据库 Schema</h3>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);" @click="refreshSchema" :disabled="schemaLoading">🔄 从远程刷新</button>
+                        <button class="modal-close-btn" style="background:rgba(255,255,255,0.15);color:white;" @click="closeSchemaModal">×</button>
                     </div>
                 </div>
                 <div class="modal-body">
-                    <div v-if="schemaLoading" class="loading">
-                        <p>正在加载Schema信息...</p>
-                    </div>
-                    <div v-else-if="schemaError" class="message error">
-                        <strong>错误:</strong> {{ schemaError }}
-                    </div>
+                    <div v-if="schemaLoading" class="loading">正在加载Schema...</div>
+                    <div v-else-if="schemaError" class="msg msg-error">{{ schemaError }}</div>
                     <div v-else-if="schemaData && schemaData.length > 0">
-                        <div style="margin-bottom: 16px; padding: 12px 16px; background: #e7f1ff; border-radius: 8px; font-size: 14px; color: #555;">
-                            💡 点击表注释或字段注释可以直接编辑，修改后按 Enter 或点击其他位置自动保存
-                        </div>
-                        <div v-for="table in schemaData" :key="table.tableName" class="schema-table-card">
-                            <div class="schema-table-title">
+                        <div class="msg msg-info" style="margin-bottom:16px;">💡 点击表注释或字段注释可直接编辑，按 Enter 或失焦自动保存</div>
+                        <div v-for="table in schemaData" :key="table.tableName" class="schema-card">
+                            <div class="schema-card-title">
                                 <span>📋 {{ table.tableName }}</span>
-                                <span style="font-size: 14px; color: #999; font-weight: 400; margin-left: 8px;" v-if="!table._editingComment" @click="startEditTableComment(table)">
-                                    <span v-if="table.tableComment" style="cursor: pointer; color: #666;">({{ table.tableComment }}) ✏️</span>
-                                    <span v-else style="cursor: pointer; color: #aaa; font-style: italic;">+ 添加表注释</span>
+                                <span v-if="!table._editingComment" @click="startEditTableComment(table)" style="font-size:13px;color:#94a3b8;font-weight:400;cursor:pointer;margin-left:6px;">
+                                    <span v-if="table.tableComment" style="color:#64748b;">({{ table.tableComment }}) ✏️</span>
+                                    <span v-else style="font-style:italic;">+ 添加表注释</span>
                                 </span>
-                                <span v-else style="margin-left: 8px;">
-                                    <input v-model="table._commentInput" @blur="saveTableComment(table)" @keyup.enter="saveTableComment(table)"
-                                        style="padding: 4px 8px; border: 2px solid #667eea; border-radius: 4px; font-size: 14px; width: 300px;" 
-                                        placeholder="输入表注释" autofocus>
-                                </span>
+                                <input v-else v-model="table._commentInput" @blur="saveTableComment(table)" @keyup.enter="saveTableComment(table)"
+                                    style="margin-left:8px;padding:4px 10px;border:2px solid #818cf8;border-radius:6px;font-size:13px;width:280px;outline:none;" placeholder="输入表注释">
                             </div>
-                            <table class="schema-columns-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 20%;">字段名</th>
-                                        <th style="width: 12%;">数据类型</th>
-                                        <th style="width: 8%;">长度</th>
-                                        <th style="width: 8%;">可空</th>
-                                        <th style="width: 8%;">主键</th>
-                                        <th style="width: 44%;">注释 <span style="font-weight: 400; opacity: 0.8;">(可编辑)</span></th>
-                                    </tr>
-                                </thead>
+                            <table class="schema-col-table" style="margin-top:10px;">
+                                <thead><tr><th style="width:22%">字段名</th><th style="width:12%">类型</th><th style="width:8%">长度</th><th style="width:7%">可空</th><th style="width:7%">主键</th><th>注释 (可编辑)</th></tr></thead>
                                 <tbody>
-                                    <tr v-for="column in table.columns" :key="column.columnName">
-                                        <td><strong>{{ column.columnName }}</strong></td>
+                                    <tr v-for="col in table.columns" :key="col.columnName">
+                                        <td><strong>{{ col.columnName }}</strong></td>
+                                        <td><span class="tag tag-info">{{ col.dataType }}</span></td>
+                                        <td>{{ col.columnSize || '-' }}</td>
+                                        <td><span v-if="col.nullable" class="tag tag-success">是</span><span v-else class="tag" style="background:#fef2f2;color:#dc2626;">否</span></td>
+                                        <td><span v-if="col.isPrimaryKey" class="tag tag-primary">🔑</span><span v-else style="color:#cbd5e1;">-</span></td>
                                         <td>
-                                            <span class="schema-badge" style="background: #17a2b8; color: white;">{{ column.dataType }}</span>
-                                        </td>
-                                        <td>{{ column.columnSize || '-' }}</td>
-                                        <td>
-                                            <span v-if="column.nullable" class="schema-badge" style="background: #28a745; color: white;">是</span>
-                                            <span v-else class="schema-badge" style="background: #dc3545; color: white;">否</span>
-                                        </td>
-                                        <td>
-                                            <span v-if="column.isPrimaryKey" class="schema-badge badge-primary">🔑</span>
-                                            <span v-else>-</span>
-                                        </td>
-                                        <td>
-                                            <span v-if="!column._editing" @click="startEditColumnComment(table, column)" style="cursor: pointer; display: block; min-height: 24px; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" 
-                                                onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='transparent'">
-                                                <span v-if="column.columnComment">{{ column.columnComment }}</span>
-                                                <span v-else style="color: #aaa; font-style: italic;">+ 添加注释</span>
+                                            <span v-if="!col._editing" @click="startEditColumnComment(table, col)"
+                                                style="cursor:pointer;display:block;min-height:22px;padding:3px 8px;border-radius:4px;transition:background 0.15s;"
+                                                onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                                <span v-if="col.columnComment">{{ col.columnComment }}</span>
+                                                <span v-else style="color:#cbd5e1;font-style:italic;">+ 添加注释</span>
                                             </span>
-                                            <input v-else v-model="column._commentInput" @blur="saveColumnComment(table, column)" @keyup.enter="saveColumnComment(table, column)"
-                                                style="width: 100%; padding: 4px 8px; border: 2px solid #667eea; border-radius: 4px; font-size: 14px;" 
-                                                placeholder="输入字段注释" autofocus>
+                                            <input v-else v-model="col._commentInput" @blur="saveColumnComment(table, col)" @keyup.enter="saveColumnComment(table, col)"
+                                                style="width:100%;padding:3px 8px;border:2px solid #818cf8;border-radius:4px;font-size:13px;outline:none;" placeholder="输入字段注释">
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <div v-else class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>该数据库中没有表，可以尝试点击"从远程刷新"按钮</p>
-                    </div>
+                    <div v-else class="empty"><div class="empty-icon">📭</div><p>暂无表结构，点击"从远程刷新"获取</p></div>
                 </div>
             </div>
         </div>
 
-        <nav class="navbar">
-            <h1>🔍 NL2SQL - 自然语言转SQL工具</h1>
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div class="nav-links">
-                    <a href="#" class="nav-link" :class="{ active: currentPage === 'query' }" @click.prevent="currentPage = 'query'">查询</a>
-                    <a href="#" class="nav-link" :class="{ active: currentPage === 'config' }" @click.prevent="currentPage = 'config'">配置</a>
-                    <a href="#" class="nav-link" :class="{ active: currentPage === 'knowledge' }" @click.prevent="currentPage = 'knowledge'">知识库</a>
+        <!-- ==================== 数据库配置模态框 ==================== -->
+        <div v-if="showDbModal" class="modal-mask" @click.self="closeDbModal">
+            <div class="modal-dialog modal-md">
+                <div class="modal-head">
+                    <h3>🗄️ 新建数据库配置</h3>
+                    <button class="modal-close-btn" @click="closeDbModal">×</button>
                 </div>
-                <div v-if="currentUser" style="display: flex; align-items: center; gap: 15px;">
-                    <span style="color: #667eea; font-weight: 500; font-size: 16px;">{{ currentUser.username }}</span>
-                    <button class="btn" style="background: #6c757d; color: white; padding: 10px 20px; font-size: 16px;" @click="logout">退出</button>
-                </div>
-            </div>
-        </nav>
-
-        <div class="container" v-if="currentPage === 'query'">
-            <div class="main-card">
-                <!-- 查询区域 -->
-                <div class="query-section">
-                    <h2>📝 自然语言查询</h2>
+                <div class="modal-body">
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>数据库配置</label>
-                            <select v-model="selectedDatabaseId" @change="loadDatabaseConfigs">
-                                <option value="">请选择数据库</option>
-                                <option v-for="db in databaseConfigs" :key="db.id" :value="db.id">
-                                    {{ db.name }} ({{ db.type }})
-                                </option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>查询模板（可选）</label>
-                            <select v-model="selectedTemplateId" @change="onTemplateChange">
-                                <option value="">不使用模板</option>
-                                <option v-for="template in queryTemplates" :key="template.id" :value="template.id">
-                                    {{ template.name }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>输入您的问题</label>
-                        <textarea v-model="question" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <div class="checkbox-group">
-                            <input type="checkbox" v-model="executeSql" id="executeSql">
-                            <label for="executeSql">执行SQL并返回结果</label>
-                        </div>
-                        <div class="checkbox-group" style="margin-left: 20px; position: relative;">
-                            <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" @click="enableVoting = !enableVoting">
-                                <div :style="{
-                                    width: '44px', height: '24px', borderRadius: '12px', position: 'relative', transition: 'all 0.3s',
-                                    background: enableVoting ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc'
-                                }">
-                                    <div :style="{
-                                        width: '20px', height: '20px', borderRadius: '50%', background: 'white',
-                                        position: 'absolute', top: '2px', transition: 'all 0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-                                        left: enableVoting ? '22px' : '2px'
-                                    }"></div>
-                                </div>
-                                <label style="cursor: pointer; user-select: none;">多候选投票(Self-Consistency)</label>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" @click="convert" :disabled="loading || !question || !selectedDatabaseId">
-                            {{ loading ? (enableVoting ? '多候选生成中...' : '生成中...') : '🚀 生成SQL' }}
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 结果区域 -->
-                <div class="result-section">
-                    <h2>📊 查询结果</h2>
-                    <div v-if="loading" class="loading">
-                        <p v-if="enableVoting">🗳️ 正在生成多个候选SQL并投票，请耐心等待...</p>
-                        <p v-else>正在处理中，请稍候...</p>
-                    </div>
-                    <div v-else-if="response">
-                        <!-- 投票信息卡片 -->
-                        <div v-if="response.votingEnabled && response.candidateSqls && response.candidateSqls.length > 0" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; padding: 24px; margin-bottom: 25px; border: 2px solid #667eea;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <h3 style="margin: 0; color: #333; font-size: 20px;">🗳️ Self-Consistency 投票结果</h3>
-                                <span :style="{
-                                    padding: '6px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', color: 'white',
-                                    background: response.confidence >= 0.6 ? '#28a745' : (response.confidence >= 0.4 ? '#ffc107' : '#dc3545')
-                                }">
-                                    置信度: {{ (response.confidence * 100).toFixed(0) }}%
-                                </span>
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px;">
-                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
-                                    <div style="font-size: 28px; font-weight: 700; color: #667eea;">{{ response.totalCandidates }}</div>
-                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">候选总数</div>
-                                </div>
-                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
-                                    <div style="font-size: 28px; font-weight: 700; color: #28a745;">{{ response.voteCount }}</div>
-                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">最高得票</div>
-                                </div>
-                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
-                                    <div style="font-size: 14px; font-weight: 600; color: #764ba2; margin-top: 6px;">{{ response.votingStrategy }}</div>
-                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">投票策略</div>
-                                </div>
-                                <div style="background: white; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
-                                    <div style="font-size: 14px; font-weight: 600; margin-top: 6px;" :style="{ color: response.degraded ? '#dc3545' : '#28a745' }">
-                                        {{ response.degraded ? '⚠️ 已降级' : '✅ 正常' }}
-                                    </div>
-                                    <div style="font-size: 13px; color: #666; margin-top: 4px;">生成状态</div>
-                                </div>
-                            </div>
-                            <!-- 候选SQL折叠展示 -->
-                            <div>
-                                <div @click="showCandidates = !showCandidates" style="cursor: pointer; display: flex; align-items: center; gap: 8px; color: #667eea; font-weight: 600; font-size: 14px; padding: 8px 0;">
-                                    <span>{{ showCandidates ? '▼' : '▶' }} 查看所有候选SQL ({{ response.candidateSqls.length }}个)</span>
-                                </div>
-                                <div v-if="showCandidates" style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
-                                    <div v-for="(candidate, idx) in response.candidateSqls" :key="idx" 
-                                        :style="{
-                                            background: candidate === response.sql ? '#282c34' : '#1e2127',
-                                            color: candidate === response.sql ? '#98c379' : '#abb2bf',
-                                            padding: '14px 18px', borderRadius: '8px', fontFamily: 'Courier New, monospace',
-                                            fontSize: '14px', whiteSpace: 'pre-wrap', wordWrap: 'break-word', position: 'relative',
-                                            border: candidate === response.sql ? '2px solid #98c379' : '1px solid #3e4451'
-                                        }">
-                                        <span style="position: absolute; top: 8px; right: 12px; font-size: 12px; padding: 2px 8px; border-radius: 4px;"
-                                            :style="{ background: candidate === response.sql ? '#28a745' : '#555', color: 'white' }">
-                                            {{ candidate === response.sql ? '✓ 最佳' : '#' + (idx + 1) }}
-                                        </span>
-                                        {{ candidate }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-if="response.sql" class="sql-result">
-                            <strong style="color: #61afef;">生成的SQL:</strong><br><br>
-                            {{ response.sql }}
-                        </div>
-                        <div v-if="response.errorMessage" class="message error">
-                            <strong>错误:</strong> {{ response.errorMessage }}
-                        </div>
-                        <div v-else-if="response.executionResult">
-                            <div v-if="response.executionResult.success" class="message success">
-                                <strong>✓ 执行成功!</strong> 共 {{ response.executionResult.rowCount }} 行数据
-                            </div>
-                            <div v-else class="message error">
-                                <strong>✗ 执行失败:</strong> {{ response.executionResult.errorMessage }}
-                            </div>
-                            <div v-if="response.executionResult.data && response.executionResult.data.length > 0" class="data-table-container" style="margin-top: 20px;">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th v-for="(value, key) in response.executionResult.data[0]" :key="key">
-                                                {{ key }}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="(row, index) in response.executionResult.data" :key="index">
-                                            <td v-for="(value, key) in row" :key="key">
-                                                {{ value }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <p>请在上方输入问题并生成SQL</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 配置页面 -->
-        <div class="container" v-if="currentPage === 'config'">
-            <!-- 数据库配置区域 -->
-            <div class="main-card" style="margin-bottom: 30px;">
-                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="font-size: 28px; color: #333; margin: 0;">🗄️ 数据库配置</h2>
-                    <button class="btn btn-primary" @click="showDbForm = !showDbForm; if (!showDbForm) cancelEditDb();" style="padding: 12px 24px; font-size: 16px;">
-                        {{ showDbForm ? '取消' : '+ 新建' }}
-                    </button>
-                </div>
-                
-                <!-- 数据库配置表单 -->
-                <div v-if="showDbForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div class="form-group">
                             <label>数据库类型</label>
                             <select v-model="editingDbConfig.type">
@@ -808,16 +639,20 @@
                         </div>
                         <div class="form-group">
                             <label>配置名称</label>
-                            <input v-model="editingDbConfig.name" placeholder="例如：生产数据库">
+                            <input v-model="editingDbConfig.name" placeholder="例如：审计生产库">
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>主机地址</label>
-                            <input v-model="editingDbConfig.host" placeholder="例如：localhost">
+                            <input v-model="editingDbConfig.host" placeholder="例如：192.168.1.100">
                         </div>
                         <div class="form-group">
                             <label>端口</label>
-                            <input type="number" v-model.number="editingDbConfig.port" placeholder="例如：3306">
+                            <input type="number" v-model.number="editingDbConfig.port" placeholder="3306">
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>数据库名</label>
                             <input v-model="editingDbConfig.database" placeholder="例如：audit_db">
@@ -826,64 +661,28 @@
                             <label>用户名</label>
                             <input v-model="editingDbConfig.username" placeholder="例如：root">
                         </div>
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label>密码</label>
-                            <input type="password" v-model="editingDbConfig.password" placeholder="请输入密码">
-                        </div>
                     </div>
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button class="btn btn-primary" @click="saveDatabaseConfig" style="flex: 1;">
-                            {{ editingDbConfig.id ? '更新' : '保存' }}
-                        </button>
-                        <button v-if="editingDbConfig.id" class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditDb">
-                            取消
-                        </button>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" v-model="editingDbConfig.password" placeholder="请输入密码">
                     </div>
                 </div>
-
-                <!-- 已有数据库配置列表 -->
-                <div style="padding: 30px;">
-                    <div v-if="databaseConfigs.length === 0" class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>暂无数据库配置，点击上方"新建"按钮添加</p>
-                    </div>
-                    <div v-else>
-                        <div v-for="db in databaseConfigs" :key="db.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e9ecef;">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; color: #333; font-size: 18px; margin-bottom: 10px;">{{ db.name }}</div>
-                                <div style="font-size: 16px; color: #666;">
-                                    <span style="background: #667eea; color: white; padding: 4px 10px; border-radius: 4px; font-size: 14px; margin-right: 12px;">{{ db.type }}</span>
-                                    {{ db.host }}:{{ db.port }} / {{ db.database }}
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <button class="btn" style="background: #28a745; color: white; padding: 12px 24px; font-size: 16px;" @click="viewDatabaseSchema(db.id)">
-                                    查看Schema
-                                </button>
-                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editDatabaseConfig(db)">
-                                    编辑
-                                </button>
-                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteDatabaseConfig(db.id)">
-                                    删除
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="closeDbModal">取消</button>
+                    <button class="btn btn-primary" @click="saveDatabaseConfig">保存配置</button>
                 </div>
             </div>
+        </div>
 
-            <!-- 查询模板配置区域 -->
-            <div class="main-card">
-                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="font-size: 28px; color: #333; margin: 0;">📋 查询模板配置</h2>
-                    <button class="btn btn-primary" @click="showTemplateForm = !showTemplateForm; if (!showTemplateForm) cancelEditTemplate();" style="padding: 12px 24px; font-size: 16px;">
-                        {{ showTemplateForm ? '取消' : '+ 新建' }}
-                    </button>
+        <!-- ==================== 查询模板模态框 ==================== -->
+        <div v-if="showTemplateModal" class="modal-mask" @click.self="closeTemplateModal">
+            <div class="modal-dialog modal-md">
+                <div class="modal-head">
+                    <h3>📋 {{ editingTemplate.id ? '编辑' : '新建' }}查询模板</h3>
+                    <button class="modal-close-btn" @click="closeTemplateModal">×</button>
                 </div>
-                
-                <!-- 查询模板表单 -->
-                <div v-if="showTemplateForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="modal-body">
+                    <div class="form-row">
                         <div class="form-group">
                             <label>模板名称</label>
                             <input v-model="editingTemplate.name" placeholder="例如：应收账款查询">
@@ -892,96 +691,39 @@
                             <label>模板描述</label>
                             <input v-model="editingTemplate.description" placeholder="模板用途说明">
                         </div>
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label>查询示例（选择模板后自动填充到查询框）</label>
-                            <textarea v-model="editingTemplate.queryExample" style="min-height: 100px;" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
-                        </div>
                     </div>
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button class="btn btn-primary" @click="saveQueryTemplate" style="flex: 1;">
-                            {{ editingTemplate.id ? '更新' : '保存' }}
-                        </button>
-                        <button v-if="editingTemplate.id" class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditTemplate">
-                            取消
-                        </button>
+                    <div class="form-group">
+                        <label>查询示例</label>
+                        <textarea v-model="editingTemplate.queryExample" style="min-height:100px;" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
                     </div>
                 </div>
-
-                <!-- 已有查询模板列表 -->
-                <div style="padding: 30px;">
-                    <div v-if="queryTemplates.length === 0" class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>暂无查询模板，点击上方"新建"按钮添加</p>
-                    </div>
-                    <div v-else>
-                        <div v-for="template in queryTemplates" :key="template.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e9ecef;">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; color: #333; font-size: 18px; margin-bottom: 10px;">{{ template.name }}</div>
-                                <div style="font-size: 16px; color: #666; margin-bottom: 10px;">{{ template.description }}</div>
-                                <div v-if="template.queryExample" style="font-size: 15px; color: #667eea; background: #e7f1ff; padding: 10px; border-radius: 4px; margin-top: 10px;">
-                                    <strong>示例：</strong>{{ template.queryExample }}
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editQueryTemplate(template)">
-                                    编辑
-                                </button>
-                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteQueryTemplate(template.id)">
-                                    删除
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="closeTemplateModal">取消</button>
+                    <button class="btn btn-primary" @click="saveQueryTemplate">{{ editingTemplate.id ? '更新' : '保存' }}</button>
                 </div>
             </div>
         </div>
 
-        <!-- 知识库页面 -->
-        <div class="container" v-if="currentPage === 'knowledge'">
-            <div class="main-card">
-                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="font-size: 28px; color: #333; margin: 0;">📚 审计知识库</h2>
-                    <button class="btn btn-primary" @click="toggleKnowledgeForm" style="padding: 12px 24px; font-size: 16px;">
-                        {{ showKnowledgeForm ? '取消' : '+ 新建知识点' }}
-                    </button>
+        <!-- ==================== 知识点模态框 ==================== -->
+        <div v-if="showKnowledgeModal" class="modal-mask" @click.self="closeKnowledgeModal">
+            <div class="modal-dialog modal-md">
+                <div class="modal-head">
+                    <h3>📝 {{ editingKnowledge.id ? '编辑' : '新建' }}知识点</h3>
+                    <button class="modal-close-btn" @click="closeKnowledgeModal">×</button>
                 </div>
-
-                <div style="padding: 30px; border-bottom: 2px solid #f0f0f0; background: #f8f9fa;">
-                    <datalist id="domainOptions">
-                        <option value="自然资源"></option>
-                        <option value="预算执行"></option>
-                        <option value="工程投资"></option>
-                    </datalist>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label>筛选领域（可选）</label>
-                            <input v-model="knowledgeFilters.domain" list="domainOptions" placeholder="例如：预算执行">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label>筛选类型（可选）</label>
-                            <select v-model="knowledgeFilters.type">
-                                <option value="">全部类型</option>
-                                <option value="SQL_EXAMPLE">SQL示例</option>
-                                <option value="GENERAL_DOC">通用文档</option>
-                                <option value="BUSINESS_RULE">业务规则</option>
-                                <option value="TERM_MAPPING">术语映射</option>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>审计领域</label>
+                            <select v-model="editingKnowledge.domain">
+                                <option value="">请选择领域</option>
+                                <option value="自然资源">自然资源</option>
+                                <option value="预算执行">预算执行</option>
+                                <option value="工程投资">工程投资</option>
                             </select>
                         </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-primary" style="padding: 12px 20px; font-size: 14px;" @click="loadKnowledgeBases">筛选</button>
-                            <button class="btn" style="background: #6c757d; color: white; padding: 12px 20px; font-size: 14px;" @click="resetKnowledgeFilters">重置</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="showKnowledgeForm" style="padding: 30px; background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div class="form-group">
-                            <label>领域</label>
-                            <input v-model="editingKnowledge.domain" list="domainOptions" placeholder="自然资源 / 预算执行 / 工程投资 或手动新增">
-                        </div>
-                        <div class="form-group">
-                            <label>类型</label>
+                            <label>知识类型</label>
                             <select v-model="editingKnowledge.type">
                                 <option value="SQL_EXAMPLE">SQL示例</option>
                                 <option value="GENERAL_DOC">通用文档</option>
@@ -990,46 +732,280 @@
                             </select>
                         </div>
                     </div>
-
                     <div v-if="editingKnowledge.type === 'SQL_EXAMPLE'" class="form-group">
                         <label>提问</label>
-                        <textarea v-model="editingKnowledge.question" style="min-height: 100px;" placeholder="输入该SQL示例对应的问题"></textarea>
+                        <textarea v-model="editingKnowledge.question" style="min-height:80px;" placeholder="例如：查询2024年1月的应收账款总额"></textarea>
                     </div>
-
                     <div class="form-group">
-                        <label>{{ editingKnowledge.type === 'SQL_EXAMPLE' ? 'SQL语句' : '知识点内容' }}</label>
-                        <textarea v-model="editingKnowledge.content" style="min-height: 150px;" :placeholder="editingKnowledge.type === 'SQL_EXAMPLE' ? '输入SQL示例' : '输入知识点内容'"></textarea>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button class="btn btn-primary" @click="saveKnowledgeBase" style="flex: 1;">{{ editingKnowledge.id ? '更新' : '保存' }}</button>
-                        <button class="btn" style="background: #6c757d; color: white; flex: 1;" @click="cancelEditKnowledge">取消</button>
+                        <label>{{ editingKnowledge.type === 'SQL_EXAMPLE' ? 'SQL语句' : '知识内容' }}</label>
+                        <textarea v-model="editingKnowledge.content" style="min-height:140px;" :placeholder="editingKnowledge.type === 'SQL_EXAMPLE' ? '输入对应的SQL语句' : '输入知识点内容'"></textarea>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="closeKnowledgeModal">取消</button>
+                    <button class="btn btn-primary" @click="saveKnowledgeBase">{{ editingKnowledge.id ? '更新' : '保存' }}</button>
+                </div>
+            </div>
+        </div>
 
-                <div style="padding: 30px;">
-                    <div v-if="knowledgeBasesList.length === 0" class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>暂无知识点，点击上方“新建知识点”添加</p>
+        <!-- ==================== 导航栏 ==================== -->
+        <nav class="navbar">
+            <div class="brand">NL2SQL 智能审计平台</div>
+            <div style="display:flex;align-items:center;gap:24px;">
+                <div class="nav-links">
+                    <a class="nav-link" :class="{active: currentPage==='query'}" @click.prevent="currentPage='query'">查询</a>
+                    <a class="nav-link" :class="{active: currentPage==='config'}" @click.prevent="currentPage='config'">配置</a>
+                    <a class="nav-link" :class="{active: currentPage==='knowledge'}" @click.prevent="currentPage='knowledge'">知识库</a>
+                </div>
+                <div v-if="currentUser" class="user-info">
+                    <span class="username">{{ currentUser.username }}</span>
+                    <button class="btn-logout" @click="logout">退出</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ==================== 查询页 ==================== -->
+        <div class="page-container" v-if="currentPage === 'query'">
+            <div class="card">
+                <div class="card-header"><h2>📝 自然语言查询</h2></div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>数据库配置</label>
+                            <select v-model="selectedDatabaseId">
+                                <option value="">请选择数据库</option>
+                                <option v-for="db in databaseConfigs" :key="db.id" :value="db.id">{{ db.name }} ({{ db.type }})</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>查询模板（可选）</label>
+                            <select v-model="selectedTemplateId" @change="onTemplateChange">
+                                <option value="">不使用模板</option>
+                                <option v-for="t in queryTemplates" :key="t.id" :value="t.id">{{ t.name }}</option>
+                            </select>
+                        </div>
                     </div>
+                    <div class="form-group">
+                        <label>输入您的问题</label>
+                        <textarea v-model="question" placeholder="例如：查询2024年第一季度各部门的预算执行率"></textarea>
+                    </div>
+                    <div class="actions-bar">
+                        <div class="check-group">
+                            <input type="checkbox" v-model="executeSql" id="execSql">
+                            <label for="execSql">执行SQL并返回结果</label>
+                        </div>
+                        <div class="toggle-wrap" @click="enableVoting = !enableVoting" style="margin-left:16px;">
+                            <div :class="['toggle-track', enableVoting ? 'on' : 'off']"><div class="toggle-thumb"></div></div>
+                            <span class="toggle-label">多候选投票 (Self-Consistency)</span>
+                        </div>
+                        <div style="flex:1;"></div>
+                        <button class="btn btn-primary" @click="convert" :disabled="loading || !question || !selectedDatabaseId">
+                            {{ loading ? (enableVoting ? '多候选生成中...' : '生成中...') : '生成SQL' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果 -->
+            <div class="card" style="margin-top:20px;">
+                <div class="card-header"><h2>📊 查询结果</h2></div>
+                <div class="card-body">
+                    <div v-if="loading" class="loading">
+                        <p v-if="enableVoting">🗳️ 正在生成多个候选SQL并投票...</p>
+                        <p v-else>正在生成SQL，请稍候...</p>
+                    </div>
+                    <div v-else-if="response">
+                        <!-- 投票结果 -->
+                        <div v-if="response.votingEnabled && response.candidateSqls && response.candidateSqls.length > 0" class="vote-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <h3 style="font-size:16px;font-weight:700;color:#1e293b;">🗳️ Self-Consistency 投票结果</h3>
+                                <span class="tag" :style="{background: response.confidence >= 0.6 ? '#ecfdf5' : '#fffbeb', color: response.confidence >= 0.6 ? '#059669' : '#d97706'}">
+                                    置信度: {{ (response.confidence * 100).toFixed(0) }}%
+                                </span>
+                            </div>
+                            <div class="vote-stats">
+                                <div class="vote-stat"><div class="vote-stat-value" style="color:#4f46e5;">{{ response.totalCandidates }}</div><div class="vote-stat-label">候选总数</div></div>
+                                <div class="vote-stat"><div class="vote-stat-value" style="color:#059669;">{{ response.voteCount }}</div><div class="vote-stat-label">最高得票</div></div>
+                                <div class="vote-stat"><div class="vote-stat-value" style="color:#7c3aed;font-size:14px;">{{ response.votingStrategy }}</div><div class="vote-stat-label">投票策略</div></div>
+                                <div class="vote-stat"><div class="vote-stat-value" :style="{color: response.degraded ? '#dc2626' : '#059669', fontSize: '14px'}">{{ response.degraded ? '⚠️ 已降级' : '✅ 正常' }}</div><div class="vote-stat-label">生成状态</div></div>
+                            </div>
+                            <div @click="showCandidates = !showCandidates" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:#4f46e5;font-weight:600;font-size:13px;padding:6px 0;">
+                                {{ showCandidates ? '▼' : '▶' }} 查看全部候选SQL ({{ response.candidateSqls.length }}个)
+                            </div>
+                            <div v-if="showCandidates" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+                                <div v-for="(c, idx) in response.candidateSqls" :key="idx" class="sql-block" :style="{border: c === response.sql ? '2px solid #4ade80' : '1px solid #334155', color: c === response.sql ? '#4ade80' : '#e2e8f0', position:'relative'}">
+                                    <span style="position:absolute;top:8px;right:10px;font-size:11px;padding:2px 8px;border-radius:4px;" :style="{background: c === response.sql ? '#059669' : '#475569', color:'white'}">
+                                        {{ c === response.sql ? '✓ 最佳' : '#' + (idx+1) }}
+                                    </span>{{ c }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="response.sql" class="sql-block" style="margin-bottom:16px;">
+                            <span style="color:#818cf8;font-weight:600;">-- 生成的SQL</span>
+{{ response.sql }}
+                        </div>
+                        <div v-if="response.errorMessage" class="msg msg-error">{{ response.errorMessage }}</div>
+                        <div v-else-if="response.executionResult">
+                            <div v-if="response.executionResult.success" class="msg msg-success">✓ 执行成功，共 {{ response.executionResult.rowCount }} 行数据</div>
+                            <div v-else class="msg msg-error">✗ {{ response.executionResult.errorMessage }}</div>
+                            <div v-if="response.executionResult.data && response.executionResult.data.length > 0" class="data-table-wrap" style="margin-top:12px;">
+                                <table class="data-table">
+                                    <thead><tr><th v-for="(v, k) in response.executionResult.data[0]" :key="k">{{ k }}</th></tr></thead>
+                                    <tbody><tr v-for="(row, i) in response.executionResult.data" :key="i"><td v-for="(v, k) in row" :key="k">{{ v }}</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="empty"><div class="empty-icon">📋</div><p>输入问题并点击"生成SQL"</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 配置页 ==================== -->
+        <div class="page-container" v-if="currentPage === 'config'">
+            <!-- 数据库配置 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🗄️ 数据库配置</h2>
+                    <button class="btn btn-primary btn-sm" @click="openDbModal">+ 新建配置</button>
+                </div>
+                <div class="card-body">
+                    <div v-if="dbConfigsPaged.length === 0" class="empty"><div class="empty-icon">📭</div><p>暂无数据库配置</p></div>
                     <div v-else>
-                        <div v-for="kb in knowledgeBasesList" :key="kb.id" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #e9ecef;">
-                            <div style="flex: 1;">
-                                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                                    <span style="background: #667eea; color: white; border-radius: 4px; padding: 4px 10px; font-size: 13px;">{{ kb.domain || '未指定领域' }}</span>
-                                    <span style="background: #17a2b8; color: white; border-radius: 4px; padding: 4px 10px; font-size: 13px;">{{ typeLabel(kb.type) }}</span>
-                                </div>
-                                <div v-if="kb.type === 'SQL_EXAMPLE' && kb.question" style="font-size: 16px; color: #667eea; font-weight: 600; margin-bottom: 10px; background: #e7f1ff; padding: 12px; border-radius: 6px;">
-                                    <strong>提问：</strong>{{ kb.question }}
-                                </div>
-                                <div style="font-size: 16px; color: #333; white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px;">
-                                    <strong>{{ kb.type === 'SQL_EXAMPLE' ? 'SQL：' : '内容：' }}</strong>{{ kb.content }}
+                        <div v-for="db in dbConfigsPaged" :key="db.id" class="list-item">
+                            <div class="list-item-body">
+                                <div class="list-item-title">{{ db.name }}</div>
+                                <div class="list-item-desc">
+                                    <span class="tag tag-primary" style="margin-right:8px;">{{ db.type }}</span>
+                                    {{ db.host }}:{{ db.port }} / {{ db.database }}
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 10px; margin-left: 15px;">
-                                <button class="btn" style="background: #17a2b8; color: white; padding: 12px 24px; font-size: 16px;" @click="editKnowledge(kb)">编辑</button>
-                                <button class="btn" style="background: #dc3545; color: white; padding: 12px 24px; font-size: 16px;" @click="deleteKnowledge(kb.id)">删除</button>
+                            <div class="list-item-actions">
+                                <button class="btn btn-sm btn-success" @click="viewDatabaseSchema(db.id)">查看Schema</button>
+                                <button class="btn btn-sm btn-danger" @click="deleteDatabaseConfig(db.id)">删除</button>
                             </div>
+                        </div>
+                        <!-- 数据库配置分页 -->
+                        <div v-if="dbPagination.totalPages > 1" class="pagination">
+                            <button class="page-btn" :disabled="dbPagination.currentPage === 0" @click="loadDbConfigsPaged(0)">«</button>
+                            <button class="page-btn" :disabled="dbPagination.currentPage === 0" @click="loadDbConfigsPaged(dbPagination.currentPage - 1)">‹</button>
+                            <template v-for="p in dbPagination.totalPages" :key="p">
+                                <button class="page-btn" :class="{active: dbPagination.currentPage === p - 1}" @click="loadDbConfigsPaged(p - 1)">{{ p }}</button>
+                            </template>
+                            <button class="page-btn" :disabled="dbPagination.currentPage >= dbPagination.totalPages - 1" @click="loadDbConfigsPaged(dbPagination.currentPage + 1)">›</button>
+                            <button class="page-btn" :disabled="dbPagination.currentPage >= dbPagination.totalPages - 1" @click="loadDbConfigsPaged(dbPagination.totalPages - 1)">»</button>
+                            <span class="page-info">共 {{ dbPagination.totalElements }} 条</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查询模板 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 查询模板</h2>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-sm btn-secondary" @click="$refs.templateFileInput.click()">📥 导入</button>
+                        <button class="btn btn-primary btn-sm" @click="openTemplateModal()">+ 新建模板</button>
+                    </div>
+                    <input type="file" ref="templateFileInput" accept=".md,.markdown,.txt" style="display:none" @change="handleTemplateImport">
+                </div>
+                <div class="card-body">
+                    <div v-if="templatesPaged.length === 0" class="empty"><div class="empty-icon">📭</div><p>暂无查询模板</p></div>
+                    <div v-else>
+                        <div v-for="t in templatesPaged" :key="t.id" class="list-item">
+                            <div class="list-item-body">
+                                <div class="list-item-title">{{ t.name }}</div>
+                                <div class="list-item-desc">{{ t.description }}</div>
+                                <div v-if="t.queryExample" style="margin-top:8px;padding:8px 12px;background:#eef2ff;border-radius:6px;font-size:13px;color:#4f46e5;">
+                                    示例：{{ t.queryExample }}
+                                </div>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-sm btn-ghost" @click="openTemplateModal(t)">编辑</button>
+                                <button class="btn btn-sm btn-danger" @click="deleteQueryTemplate(t.id)">删除</button>
+                            </div>
+                        </div>
+                        <!-- 查询模板分页 -->
+                        <div v-if="tplPagination.totalPages > 1" class="pagination">
+                            <button class="page-btn" :disabled="tplPagination.currentPage === 0" @click="loadTemplatesPaged(0)">«</button>
+                            <button class="page-btn" :disabled="tplPagination.currentPage === 0" @click="loadTemplatesPaged(tplPagination.currentPage - 1)">‹</button>
+                            <template v-for="p in tplPagination.totalPages" :key="p">
+                                <button class="page-btn" :class="{active: tplPagination.currentPage === p - 1}" @click="loadTemplatesPaged(p - 1)">{{ p }}</button>
+                            </template>
+                            <button class="page-btn" :disabled="tplPagination.currentPage >= tplPagination.totalPages - 1" @click="loadTemplatesPaged(tplPagination.currentPage + 1)">›</button>
+                            <button class="page-btn" :disabled="tplPagination.currentPage >= tplPagination.totalPages - 1" @click="loadTemplatesPaged(tplPagination.totalPages - 1)">»</button>
+                            <span class="page-info">共 {{ tplPagination.totalElements }} 条</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 知识库页 ==================== -->
+        <div class="page-container" v-if="currentPage === 'knowledge'">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📚 审计知识库</h2>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-sm btn-secondary" @click="$refs.knowledgeFileInput.click()">📥 导入</button>
+                        <button class="btn btn-primary btn-sm" @click="openKnowledgeModal()">+ 新建知识点</button>
+                    </div>
+                    <input type="file" ref="knowledgeFileInput" accept=".md,.markdown,.txt" style="display:none" @change="handleKnowledgeImport">
+                </div>
+                <!-- 筛选栏 -->
+                <div class="filter-bar">
+                    <div class="form-group">
+                        <label>筛选领域</label>
+                        <select v-model="knowledgeFilters.domain" @change="loadKnowledgeBases(0)">
+                            <option value="">全部领域</option>
+                            <option value="自然资源">自然资源</option>
+                            <option value="预算执行">预算执行</option>
+                            <option value="工程投资">工程投资</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>筛选类型</label>
+                        <select v-model="knowledgeFilters.type" @change="loadKnowledgeBases(0)">
+                            <option value="">全部类型</option>
+                            <option value="SQL_EXAMPLE">SQL示例</option>
+                            <option value="GENERAL_DOC">通用文档</option>
+                            <option value="BUSINESS_RULE">业务规则</option>
+                            <option value="TERM_MAPPING">术语映射</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" @click="resetKnowledgeFilters" style="margin-bottom:0;align-self:flex-end;">重置</button>
+                </div>
+                <div class="card-body">
+                    <div v-if="knowledgeBasesList.length === 0" class="empty"><div class="empty-icon">📭</div><p>暂无知识点，点击"新建知识点"添加</p></div>
+                    <div v-else>
+                        <div v-for="kb in knowledgeBasesList" :key="kb.id" class="list-item" style="align-items:flex-start;">
+                            <div class="list-item-body">
+                                <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                                    <span class="tag tag-primary">{{ kb.domain || '未指定' }}</span>
+                                    <span :class="['tag', typeTagClass(kb.type)]">{{ typeLabel(kb.type) }}</span>
+                                </div>
+                                <div v-if="kb.type === 'SQL_EXAMPLE' && kb.question" style="padding:10px 14px;background:#eef2ff;border-radius:8px;font-size:14px;color:#4f46e5;font-weight:600;margin-bottom:8px;">
+                                    提问：{{ kb.question }}
+                                </div>
+                                <div style="font-size:14px;color:#334155;white-space:pre-wrap;background:#f8fafc;padding:12px 14px;border-radius:8px;line-height:1.6;border:1px solid #f1f5f9;">{{ kb.content }}</div>
+                            </div>
+                            <div class="list-item-actions" style="padding-top:4px;">
+                                <button class="btn btn-sm btn-ghost" @click="openKnowledgeModal(kb)">编辑</button>
+                                <button class="btn btn-sm btn-danger" @click="deleteKnowledge(kb.id)">删除</button>
+                            </div>
+                        </div>
+                        <!-- 知识库分页 -->
+                        <div v-if="kbPagination.totalPages > 1" class="pagination">
+                            <button class="page-btn" :disabled="kbPagination.currentPage === 0" @click="loadKnowledgeBases(0)">«</button>
+                            <button class="page-btn" :disabled="kbPagination.currentPage === 0" @click="loadKnowledgeBases(kbPagination.currentPage - 1)">‹</button>
+                            <template v-for="p in kbPagination.totalPages" :key="p">
+                                <button class="page-btn" :class="{active: kbPagination.currentPage === p - 1}" @click="loadKnowledgeBases(p - 1)">{{ p }}</button>
+                            </template>
+                            <button class="page-btn" :disabled="kbPagination.currentPage >= kbPagination.totalPages - 1" @click="loadKnowledgeBases(kbPagination.currentPage + 1)">›</button>
+                            <button class="page-btn" :disabled="kbPagination.currentPage >= kbPagination.totalPages - 1" @click="loadKnowledgeBases(kbPagination.totalPages - 1)">»</button>
+                            <span class="page-info">共 {{ kbPagination.totalElements }} 条</span>
                         </div>
                     </div>
                 </div>
@@ -1039,7 +1015,6 @@
 
     <script>
         const { createApp } = Vue;
-
         createApp({
             data() {
                 return {
@@ -1055,39 +1030,27 @@
                     currentUser: null,
                     databaseConfigs: [],
                     queryTemplates: [],
-                    showDbForm: false,
-                    showTemplateForm: false,
                     toasts: [],
                     toastIdCounter: 0,
-                    editingDbConfig: {
-                        type: 'MYSQL',
-                        name: '',
-                        host: '',
-                        port: 3306,
-                        database: '',
-                        username: '',
-                        password: ''
-                    },
-                    editingTemplate: {
-                        name: '',
-                        description: '',
-                        queryExample: ''
-                    },
-                    // 知识库相关
+                    // 数据库配置模态框
+                    showDbModal: false,
+                    editingDbConfig: { type: 'MYSQL', name: '', host: '', port: 3306, database: '', username: '', password: '' },
+                    // 查询模板模态框
+                    showTemplateModal: false,
+                    editingTemplate: { name: '', description: '', queryExample: '' },
+                    // 知识库模态框
+                    showKnowledgeModal: false,
+                    editingKnowledge: { id: null, domain: '', type: 'SQL_EXAMPLE', question: '', content: '' },
+                    // 知识库列表
                     knowledgeBasesList: [],
-                    showKnowledgeForm: false,
-                    knowledgeFilters: {
-                        domain: '',
-                        type: ''
-                    },
-                    editingKnowledge: {
-                        id: null,
-                        domain: '',
-                        type: 'SQL_EXAMPLE',
-                        question: '',
-                        content: '',
-                    },
-                    // Schema相关
+                    knowledgeFilters: { domain: '', type: '' },
+                    // 分页状态
+                    kbPagination: { currentPage: 0, totalPages: 0, totalElements: 0, pageSize: 5 },
+                    dbPagination: { currentPage: 0, totalPages: 0, totalElements: 0, pageSize: 5 },
+                    dbConfigsPaged: [],
+                    tplPagination: { currentPage: 0, totalPages: 0, totalElements: 0, pageSize: 5 },
+                    templatesPaged: [],
+                    // Schema
                     showSchemaModal: false,
                     schemaLoading: false,
                     schemaError: null,
@@ -1095,411 +1058,278 @@
                     schemaConfigId: null
                 };
             },
-            mounted() {
-                this.checkLogin();
-            },
+            mounted() { this.checkLogin(); },
             watch: {
-                currentPage() {
-                    if (this.currentPage === 'config') {
-                        this.loadDatabaseConfigs();
-                        this.loadQueryTemplates();
-                    } else if (this.currentPage === 'knowledge') {
-                        this.loadKnowledgeBases();
-                    }
+                currentPage(v) {
+                    if (v === 'config') { this.loadDbConfigsPaged(0); this.loadTemplatesPaged(0); }
+                    else if (v === 'knowledge') { this.loadKnowledgeBases(0); }
                 }
             },
             methods: {
+                // ===== 登录 =====
                 async checkLogin() {
                     try {
-                        const response = await axios.get('/api/user/current', { withCredentials: true });
-                        if (response.data.success) {
-                            this.currentUser = response.data.user;
-                            this.loadDatabaseConfigs();
-                            this.loadQueryTemplates();
-                        } else {
-                            window.location.href = '/login.html';
-                        }
-                    } catch (error) {
-                        window.location.href = '/login.html';
-                    }
+                        const r = await axios.get('/api/user/current', { withCredentials: true });
+                        if (r.data.success) { this.currentUser = r.data.user; this.loadDatabaseConfigs(); this.loadQueryTemplates(); }
+                        else { window.location.href = '/login.html'; }
+                    } catch { window.location.href = '/login.html'; }
                 },
                 async logout() {
-                    try {
-                        await axios.post('/api/user/logout', {}, { withCredentials: true });
-                        window.location.href = '/login.html';
-                    } catch (error) {
-                        console.error('退出失败:', error);
-                    }
+                    try { await axios.post('/api/user/logout', {}, { withCredentials: true }); } catch {}
+                    window.location.href = '/login.html';
                 },
+
+                // ===== 查询 =====
                 async convert() {
-                    if (!this.question || !this.selectedDatabaseId) {
-                        this.showToast('提示', '请填写问题和选择数据库配置', 'error');
-                        return;
-                    }
-
-                    this.loading = true;
-                    this.response = null;
-                    this.showCandidates = false;
-
+                    if (!this.question || !this.selectedDatabaseId) { this.showToast('提示', '请填写问题和选择数据库', 'error'); return; }
+                    this.loading = true; this.response = null; this.showCandidates = false;
                     try {
-                        const response = await axios.post('/api/nl2sql/convert', {
-                            question: this.question,
-                            databaseConfigId: this.selectedDatabaseId,
-                            executeSql: this.executeSql,
-                            enableVoting: this.enableVoting
+                        const r = await axios.post('/api/nl2sql/convert', {
+                            question: this.question, databaseConfigId: this.selectedDatabaseId,
+                            executeSql: this.executeSql, enableVoting: this.enableVoting
                         }, { withCredentials: true });
-                        this.response = response.data;
-                    } catch (error) {
-                        this.response = {
-                            success: false,
-                            errorMessage: error.response?.data?.message || error.message || '请求失败'
-                        };
-                    } finally {
-                        this.loading = false;
-                    }
+                        this.response = r.data;
+                    } catch (e) {
+                        this.response = { success: false, errorMessage: e.response?.data?.message || e.message || '请求失败' };
+                    } finally { this.loading = false; }
                 },
                 onTemplateChange() {
                     if (this.selectedTemplateId) {
-                        const template = this.queryTemplates.find(t => t.id === this.selectedTemplateId);
-                        if (template && template.queryExample) {
-                            this.question = template.queryExample;
-                        }
+                        const t = this.queryTemplates.find(x => x.id === this.selectedTemplateId);
+                        if (t?.queryExample) this.question = t.queryExample;
                     }
                 },
-                async loadDatabaseConfigs() {
-                    try {
-                        const response = await axios.get('/api/config/database-configs', { withCredentials: true });
-                        this.databaseConfigs = response.data;
-                    } catch (error) {
-                        console.error('加载数据库配置失败:', error);
-                    }
-                },
-                async saveDatabaseConfig() {
-                    if (!this.editingDbConfig.name || !this.editingDbConfig.host) {
-                        this.showToast('提示', '请填写必填项', 'error');
-                        return;
-                    }
 
+                // ===== 数据库配置 =====
+                async loadDatabaseConfigs() {
+                    try { this.databaseConfigs = (await axios.get('/api/config/database-configs', { withCredentials: true })).data; } catch {}
+                },
+                async loadDbConfigsPaged(page) {
+                    if (page === undefined || page === null) page = this.dbPagination.currentPage;
                     try {
-                        if (this.editingDbConfig.id) {
-                            await axios.put(`/api/config/database-configs/${this.editingDbConfig.id}`, this.editingDbConfig, { withCredentials: true });
-                        } else {
-                            await axios.post('/api/config/database-configs', this.editingDbConfig, { withCredentials: true });
+                        const r = await axios.get(`/api/config/database-configs?page=${page}&size=${this.dbPagination.pageSize}`, { withCredentials: true });
+                        if (r.data.success) {
+                            this.dbConfigsPaged = r.data.data || [];
+                            this.dbPagination.currentPage = r.data.currentPage ?? 0;
+                            this.dbPagination.totalPages = r.data.totalPages ?? 0;
+                            this.dbPagination.totalElements = r.data.totalElements ?? 0;
                         }
-                        this.loadDatabaseConfigs();
-                        this.cancelEditDb();
-                        this.showToast('成功', '保存成功', 'success');
-                        this.showDbForm = false;
-                    } catch (error) {
-                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                    } catch {}
                 },
-                editDatabaseConfig(db) {
-                    this.editingDbConfig = { ...db };
-                    this.showDbForm = true;
+                openDbModal() {
+                    this.editingDbConfig = { type: 'MYSQL', name: '', host: '', port: 3306, database: '', username: '', password: '' };
+                    this.showDbModal = true;
                 },
-                cancelEditDb() {
-                    this.editingDbConfig = {
-                        type: 'MYSQL',
-                        name: '',
-                        host: '',
-                        port: 3306,
-                        database: '',
-                        username: '',
-                        password: ''
-                    };
-                    this.showDbForm = false;
+                closeDbModal() { this.showDbModal = false; },
+                async saveDatabaseConfig() {
+                    if (!this.editingDbConfig.name || !this.editingDbConfig.host) { this.showToast('提示', '请填写必填项', 'error'); return; }
+                    try {
+                        await axios.post('/api/config/database-configs', this.editingDbConfig, { withCredentials: true });
+                        this.loadDatabaseConfigs(); this.loadDbConfigsPaged(); this.closeDbModal(); this.showToast('成功', '数据库配置已保存', 'success');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
                 async deleteDatabaseConfig(id) {
-                    if (!confirm('确定要删除这个配置吗？')) {
-                        return;
-                    }
-
+                    if (!confirm('确定删除此数据库配置？')) return;
                     try {
                         await axios.delete(`/api/config/database-configs/${id}`, { withCredentials: true });
-                        this.loadDatabaseConfigs();
-                        if (this.selectedDatabaseId === id) {
-                            this.selectedDatabaseId = '';
-                        }
-                    } catch (error) {
-                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                        this.loadDatabaseConfigs(); this.loadDbConfigsPaged();
+                        if (this.selectedDatabaseId === id) this.selectedDatabaseId = '';
+                        this.showToast('成功', '已删除', 'success');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
-                async viewDatabaseSchema(dbId) {
-                    this.showSchemaModal = true;
-                    this.schemaLoading = true;
-                    this.schemaError = null;
-                    this.schemaData = [];
-                    this.schemaConfigId = dbId;
 
+                // ===== Schema =====
+                async viewDatabaseSchema(dbId) {
+                    this.showSchemaModal = true; this.schemaLoading = true; this.schemaError = null; this.schemaData = []; this.schemaConfigId = dbId;
                     try {
-                        const response = await axios.get(`/api/config/database-configs/${dbId}/schema`, { withCredentials: true });
-                        if (response.data.success) {
-                            this.schemaData = this.prepareSchemaData(response.data.data || []);
-                        } else {
-                            this.schemaError = response.data.message || '获取Schema失败';
-                        }
-                    } catch (error) {
-                        this.schemaError = error.response?.data?.message || error.message || '获取Schema失败';
-                    } finally {
-                        this.schemaLoading = false;
-                    }
+                        const r = await axios.get(`/api/config/database-configs/${dbId}/schema`, { withCredentials: true });
+                        if (r.data.success) this.schemaData = this.prepareSchemaData(r.data.data || []);
+                        else this.schemaError = r.data.message || '获取失败';
+                    } catch (e) { this.schemaError = e.response?.data?.message || e.message; } finally { this.schemaLoading = false; }
                 },
-                closeSchemaModal() {
-                    this.showSchemaModal = false;
-                    this.schemaData = [];
-                    this.schemaError = null;
-                    this.schemaConfigId = null;
-                },
+                closeSchemaModal() { this.showSchemaModal = false; this.schemaData = []; this.schemaError = null; this.schemaConfigId = null; },
                 prepareSchemaData(tables) {
-                    return tables.map(table => ({
-                        ...table,
-                        _editingComment: false,
-                        _commentInput: table.tableComment || '',
-                        columns: (table.columns || []).map(col => ({
-                            ...col,
-                            _editing: false,
-                            _commentInput: col.columnComment || ''
-                        }))
-                    }));
+                    return tables.map(t => ({ ...t, _editingComment: false, _commentInput: t.tableComment || '', columns: (t.columns || []).map(c => ({ ...c, _editing: false, _commentInput: c.columnComment || '' })) }));
                 },
                 async refreshSchema() {
                     if (!this.schemaConfigId) return;
-                    this.schemaLoading = true;
-                    this.schemaError = null;
+                    this.schemaLoading = true; this.schemaError = null;
                     try {
-                        const response = await axios.post(`/api/config/database-configs/${this.schemaConfigId}/schema/refresh`, {}, { withCredentials: true });
-                        if (response.data.success) {
-                            this.schemaData = this.prepareSchemaData(response.data.data || []);
-                            this.showToast('成功', 'Schema已从远程数据库刷新', 'success');
-                        } else {
-                            this.schemaError = response.data.message || '刷新失败';
-                        }
-                    } catch (error) {
-                        this.schemaError = error.response?.data?.message || error.message || '刷新失败';
-                    } finally {
-                        this.schemaLoading = false;
-                    }
+                        const r = await axios.post(`/api/config/database-configs/${this.schemaConfigId}/schema/refresh`, {}, { withCredentials: true });
+                        if (r.data.success) { this.schemaData = this.prepareSchemaData(r.data.data || []); this.showToast('成功', 'Schema已刷新', 'success'); }
+                        else this.schemaError = r.data.message;
+                    } catch (e) { this.schemaError = e.response?.data?.message || e.message; } finally { this.schemaLoading = false; }
                 },
-                startEditTableComment(table) {
-                    table._commentInput = table.tableComment || '';
-                    table._editingComment = true;
-                },
-                async saveTableComment(table) {
-                    table._editingComment = false;
-                    const newComment = (table._commentInput || '').trim();
-                    if (newComment === (table.tableComment || '')) return;
+                startEditTableComment(t) { t._commentInput = t.tableComment || ''; t._editingComment = true; },
+                async saveTableComment(t) {
+                    t._editingComment = false;
+                    const c = (t._commentInput || '').trim();
+                    if (c === (t.tableComment || '')) return;
                     try {
-                        await axios.put(`/api/config/database-configs/${this.schemaConfigId}/schema/table-comment`, {
-                            tableName: table.tableName,
-                            tableComment: newComment
-                        }, { withCredentials: true });
-                        table.tableComment = newComment;
-                        this.showToast('成功', `表 ${table.tableName} 注释已更新`, 'success');
-                    } catch (error) {
-                        this.showToast('失败', '更新表注释失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                        await axios.put(`/api/config/database-configs/${this.schemaConfigId}/schema/table-comment`, { tableName: t.tableName, tableComment: c }, { withCredentials: true });
+                        t.tableComment = c; this.showToast('成功', `表 ${t.tableName} 注释已更新`, 'success');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
-                startEditColumnComment(table, column) {
-                    column._commentInput = column.columnComment || '';
-                    column._editing = true;
-                },
-                async saveColumnComment(table, column) {
-                    column._editing = false;
-                    const newComment = (column._commentInput || '').trim();
-                    if (newComment === (column.columnComment || '')) return;
+                startEditColumnComment(t, col) { col._commentInput = col.columnComment || ''; col._editing = true; },
+                async saveColumnComment(t, col) {
+                    col._editing = false;
+                    const c = (col._commentInput || '').trim();
+                    if (c === (col.columnComment || '')) return;
                     try {
-                        await axios.put(`/api/config/database-configs/${this.schemaConfigId}/schema/column-comment`, {
-                            tableName: table.tableName,
-                            columnName: column.columnName,
-                            columnComment: newComment
-                        }, { withCredentials: true });
-                        column.columnComment = newComment;
-                        this.showToast('成功', `字段 ${column.columnName} 注释已更新`, 'success');
-                    } catch (error) {
-                        this.showToast('失败', '更新列注释失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                        await axios.put(`/api/config/database-configs/${this.schemaConfigId}/schema/column-comment`, { tableName: t.tableName, columnName: col.columnName, columnComment: c }, { withCredentials: true });
+                        col.columnComment = c; this.showToast('成功', `字段 ${col.columnName} 注释已更新`, 'success');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
-                async loadQueryTemplates() {
-                    try {
-                        const response = await axios.get('/api/config/query-templates', { withCredentials: true });
-                        this.queryTemplates = response.data;
-                    } catch (error) {
-                        console.error('加载查询模板失败:', error);
-                    }
-                },
-                async saveQueryTemplate() {
-                    if (!this.editingTemplate.name) {
-                        this.showToast('提示', '请填写模板名称', 'error');
-                        return;
-                    }
 
+                // ===== 查询模板 =====
+                async loadQueryTemplates() {
+                    try { this.queryTemplates = (await axios.get('/api/config/query-templates', { withCredentials: true })).data; } catch {}
+                },
+                async loadTemplatesPaged(page) {
+                    if (page === undefined || page === null) page = this.tplPagination.currentPage;
+                    try {
+                        const r = await axios.get(`/api/config/query-templates?page=${page}&size=${this.tplPagination.pageSize}`, { withCredentials: true });
+                        if (r.data.success) {
+                            this.templatesPaged = r.data.data || [];
+                            this.tplPagination.currentPage = r.data.currentPage ?? 0;
+                            this.tplPagination.totalPages = r.data.totalPages ?? 0;
+                            this.tplPagination.totalElements = r.data.totalElements ?? 0;
+                        }
+                    } catch {}
+                },
+                openTemplateModal(t) {
+                    this.editingTemplate = t ? { ...t } : { name: '', description: '', queryExample: '' };
+                    this.showTemplateModal = true;
+                },
+                closeTemplateModal() { this.showTemplateModal = false; },
+                async saveQueryTemplate() {
+                    if (!this.editingTemplate.name) { this.showToast('提示', '请填写模板名称', 'error'); return; }
                     try {
                         if (this.editingTemplate.id) {
                             await axios.put(`/api/config/query-templates/${this.editingTemplate.id}`, this.editingTemplate, { withCredentials: true });
                         } else {
                             await axios.post('/api/config/query-templates', this.editingTemplate, { withCredentials: true });
                         }
-                        this.loadQueryTemplates();
-                        this.cancelEditTemplate();
-                        this.showToast('成功', '保存成功', 'success');
-                        this.showTemplateForm = false;
-                    } catch (error) {
-                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
-                },
-                async editQueryTemplate(template) {
-                    try {
-                        const response = await axios.get(`/api/config/query-templates/${template.id}`, { withCredentials: true });
-                        this.editingTemplate = { ...response.data };
-                    } catch (error) {
-                        this.editingTemplate = { ...template };
-                    }
-                    this.showTemplateForm = true;
-                },
-                cancelEditTemplate() {
-                    this.editingTemplate = {
-                        name: '',
-                        description: '',
-                        queryExample: ''
-                    };
-                    this.showTemplateForm = false;
+                        this.loadQueryTemplates(); this.loadTemplatesPaged(); this.closeTemplateModal(); this.showToast('成功', '模板已保存', 'success');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
                 async deleteQueryTemplate(id) {
-                    if (!confirm('确定要删除这个模板吗？')) {
-                        return;
-                    }
-
+                    if (!confirm('确定删除此模板？')) return;
                     try {
                         await axios.delete(`/api/config/query-templates/${id}`, { withCredentials: true });
-                        this.loadQueryTemplates();
-                        if (this.selectedTemplateId === id) {
-                            this.selectedTemplateId = '';
-                        }
-                        this.showToast('成功', '删除成功', 'success');
-                    } catch (error) {
-                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                        this.loadQueryTemplates(); this.loadTemplatesPaged();
+                        if (this.selectedTemplateId === id) this.selectedTemplateId = '';
+                        this.showToast('成功', '已删除', 'success');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
-                // 知识库相关方法
-                async loadKnowledgeBases() {
-                    try {
-                        const params = new URLSearchParams();
-                        if (this.knowledgeFilters.type) params.append('type', this.knowledgeFilters.type);
-                        if (this.knowledgeFilters.domain) params.append('domain', this.knowledgeFilters.domain.trim());
-                        const query = params.toString() ? `?${params.toString()}` : '';
-                        const response = await axios.get(`/api/knowledge-base/list${query}`, { withCredentials: true });
-                        if (response.data.success) {
-                            this.knowledgeBasesList = response.data.data || [];
-                        }
-                    } catch (error) {
-                        console.error('加载知识库失败:', error);
-                    }
-                },
-                resetKnowledgeFilters() {
-                    this.knowledgeFilters = { domain: '', type: '' };
-                    this.loadKnowledgeBases();
-                },
-                toggleKnowledgeForm() {
-                    if (this.showKnowledgeForm) {
-                        this.cancelEditKnowledge();
-                    } else {
-                        this.showKnowledgeForm = true;
-                    }
-                },
-                async saveKnowledgeBase() {
-                    if (!this.editingKnowledge.type) {
-                        this.showToast('提示', '请选择知识类型', 'error');
-                        return;
-                    }
-                    if (!this.editingKnowledge.content) {
-                        this.showToast('提示', '请填写知识点内容', 'error');
-                        return;
-                    }
-                    if (this.editingKnowledge.type === 'SQL_EXAMPLE' && !this.editingKnowledge.question) {
-                        this.showToast('提示', 'SQL示例类型需要填写提问', 'error');
-                        return;
-                    }
 
+                // ===== 导入 =====
+                async handleTemplateImport(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    try {
+                        const r = await axios.post('/api/config/query-templates/import', formData, { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } });
+                        if (r.data.success !== false) {
+                            this.showToast('导入成功', r.data.message || '导入完成', 'success');
+                            this.loadQueryTemplates();
+                            this.loadTemplatesPaged(0);
+                        } else {
+                            this.showToast('导入失败', r.data.message || '导入出错', 'error');
+                        }
+                    } catch (err) {
+                        this.showToast('导入失败', err.response?.data?.message || err.message, 'error');
+                    } finally {
+                        e.target.value = '';
+                    }
+                },
+                async handleKnowledgeImport(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    try {
+                        const r = await axios.post('/api/knowledge-base/import', formData, { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } });
+                        if (r.data.success !== false) {
+                            this.showToast('导入成功', r.data.message || '导入完成', 'success');
+                            this.loadKnowledgeBases(0);
+                        } else {
+                            this.showToast('导入失败', r.data.message || '导入出错', 'error');
+                        }
+                    } catch (err) {
+                        this.showToast('导入失败', err.response?.data?.message || err.message, 'error');
+                    } finally {
+                        e.target.value = '';
+                    }
+                },
+
+                // ===== 知识库 =====
+                async loadKnowledgeBases(page) {
+                    if (page === undefined || page === null) page = this.kbPagination.currentPage;
+                    try {
+                        const p = new URLSearchParams();
+                        if (this.knowledgeFilters.type) p.append('type', this.knowledgeFilters.type);
+                        if (this.knowledgeFilters.domain) p.append('domain', this.knowledgeFilters.domain);
+                        p.append('page', page);
+                        p.append('size', this.kbPagination.pageSize);
+                        const r = await axios.get(`/api/knowledge-base/list?${p.toString()}`, { withCredentials: true });
+                        if (r.data.success) {
+                            this.knowledgeBasesList = r.data.data || [];
+                            this.kbPagination.currentPage = r.data.currentPage ?? 0;
+                            this.kbPagination.totalPages = r.data.totalPages ?? 0;
+                            this.kbPagination.totalElements = r.data.totalElements ?? 0;
+                        }
+                    } catch {}
+                },
+                resetKnowledgeFilters() { this.knowledgeFilters = { domain: '', type: '' }; this.loadKnowledgeBases(0); },
+                openKnowledgeModal(kb) {
+                    this.editingKnowledge = kb
+                        ? { id: kb.id, domain: kb.domain || '', type: kb.type || 'SQL_EXAMPLE', question: kb.question || '', content: kb.content || '' }
+                        : { id: null, domain: '', type: 'SQL_EXAMPLE', question: '', content: '' };
+                    this.showKnowledgeModal = true;
+                },
+                closeKnowledgeModal() { this.showKnowledgeModal = false; },
+                async saveKnowledgeBase() {
+                    if (!this.editingKnowledge.type) { this.showToast('提示', '请选择知识类型', 'error'); return; }
+                    if (!this.editingKnowledge.content) { this.showToast('提示', '请填写内容', 'error'); return; }
+                    if (this.editingKnowledge.type === 'SQL_EXAMPLE' && !this.editingKnowledge.question) { this.showToast('提示', 'SQL示例需填写提问', 'error'); return; }
                     try {
                         const kb = {
                             id: this.editingKnowledge.id || null,
-                            domain: this.editingKnowledge.domain ? this.editingKnowledge.domain.trim() : '',
+                            domain: this.editingKnowledge.domain || '',
                             type: this.editingKnowledge.type,
                             question: this.editingKnowledge.type === 'SQL_EXAMPLE' ? (this.editingKnowledge.question || '') : '',
                             content: this.editingKnowledge.content
                         };
-                        const response = await axios.post('/api/knowledge-base/save', kb, { withCredentials: true });
-                        if (response.data.success) {
-                            this.showToast('成功', '保存成功', 'success');
-                            this.cancelEditKnowledge();
-                            this.loadKnowledgeBases();
-                        } else {
-                            this.showToast('失败', response.data.message || '保存失败', 'error');
-                        }
-                    } catch (error) {
-                        this.showToast('失败', '保存失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
-                },
-                editKnowledge(kb) {
-                    this.editingKnowledge = {
-                        id: kb.id,
-                        domain: kb.domain || '',
-                        type: kb.type || 'SQL_EXAMPLE',
-                        question: kb.question || '',
-                        content: kb.content || ''
-                    };
-                    this.showKnowledgeForm = true;
-                },
-                cancelEditKnowledge() {
-                    this.editingKnowledge = {
-                        id: null,
-                        domain: '',
-                        type: 'SQL_EXAMPLE',
-                        question: '',
-                        content: ''
-                    };
-                    this.showKnowledgeForm = false;
+                        const r = await axios.post('/api/knowledge-base/save', kb, { withCredentials: true });
+                        if (r.data.success) { this.showToast('成功', '已保存', 'success'); this.closeKnowledgeModal(); this.loadKnowledgeBases(); }
+
+                        else this.showToast('失败', r.data.message || '保存失败', 'error');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
                 async deleteKnowledge(id) {
-                    if (!confirm('确定要删除这个知识点吗？')) {
-                        return;
-                    }
+                    if (!confirm('确定删除此知识点？')) return;
                     try {
-                        const response = await axios.delete(`/api/knowledge-base/${id}`, { withCredentials: true });
-                        if (response.data.success) {
-                            this.showToast('成功', '删除成功', 'success');
-                            this.loadKnowledgeBases();
-                        } else {
-                            this.showToast('失败', response.data.message || '删除失败', 'error');
-                        }
-                    } catch (error) {
-                        this.showToast('失败', '删除失败: ' + (error.response?.data?.message || error.message), 'error');
-                    }
+                        const r = await axios.delete(`/api/knowledge-base/${id}`, { withCredentials: true });
+                        if (r.data.success) { this.showToast('成功', '已删除', 'success'); this.loadKnowledgeBases(); }
+                        else this.showToast('失败', r.data.message, 'error');
+                    } catch (e) { this.showToast('失败', e.response?.data?.message || e.message, 'error'); }
                 },
-                typeLabel(type) {
-                    if (type === 'SQL_EXAMPLE') return 'SQL示例';
-                    if (type === 'GENERAL_DOC') return '通用文档';
-                    if (type === 'BUSINESS_RULE') return '业务规则';
-                    if (type === 'TERM_MAPPING') return '术语映射';
-                    return type || '-';
+
+                // ===== 工具 =====
+                typeLabel(t) {
+                    const m = { SQL_EXAMPLE: 'SQL示例', GENERAL_DOC: '通用文档', BUSINESS_RULE: '业务规则', TERM_MAPPING: '术语映射' };
+                    return m[t] || t || '-';
+                },
+                typeTagClass(t) {
+                    const m = { SQL_EXAMPLE: 'tag-info', GENERAL_DOC: 'tag-success', BUSINESS_RULE: 'tag-warning', TERM_MAPPING: 'tag-secondary' };
+                    return m[t] || 'tag-secondary';
                 },
                 showToast(title, message, type) {
-                    const toast = {
-                        id: this.toastIdCounter++,
-                        title: title,
-                        message: message,
-                        type: type
-                    };
+                    const toast = { id: this.toastIdCounter++, title, message, type };
                     this.toasts.push(toast);
-                    
-                    // 2秒后自动移除
-                    setTimeout(() => {
-                        const index = this.toasts.findIndex(t => t.id === toast.id);
-                        if (index > -1) {
-                            this.toasts.splice(index, 1);
-                        }
-                    }, 2000);
+                    setTimeout(() => { const i = this.toasts.findIndex(x => x.id === toast.id); if (i > -1) this.toasts.splice(i, 1); }, 2000);
                 }
             }
         }).mount('#app');
